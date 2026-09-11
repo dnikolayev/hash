@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Print a fork-only smoke or complete-Test benchmark workflow.
 
-Both modes check out the candidate commit. Baseline mode disables output reuse
-inside the same instrumented wrapper; application source and dependencies are
-therefore identical. Push each generated workflow to its own benchmark branch.
+Both modes check out the candidate commit. Baseline mode retains the original
+Cargo compile command; only the candidate prepares and reuses the build output.
+Application source and dependencies are therefore identical. Push each generated
+workflow to its own benchmark branch.
 Repeat a successful cold run with an empty commit on that SAME branch for a
 fresh-runner warm measurement. Keep the workflow bytes and source SHA fixed.
 """
@@ -40,15 +41,15 @@ def generate(original, baseline_sha, candidate_sha, variant, campaign, sample, s
     end = jobs.index('  publish-rust:\n', begin)
     integration = jobs[begin:end]
     original_steps = integration[integration.index('    steps:\n'):]
-    graph_mode = '1' if variant == 'candidate' else 'baseline'
+    graph_mode = '1' if variant == 'candidate' else '0'
     integration = replace_once(integration, '    name: Integration\n', f'    name: Integration\n    env:\n      HASH_GRAPH_BUILD_CACHE: "{graph_mode}"\n')
     if scope == 'smoke':
         integration = replace_once(integration, '    needs: [setup, sccache-credentials]\n', '')
         integration = replace_once(integration, '      matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}\n', '''      matrix:
         include:
-          - name: '@tests/hash-playwright'
+          - name: "@tests/hash-playwright"
             path: tests/hash-playwright
-          - name: '@tests/hash-backend-integration'
+          - name: "@tests/hash-backend-integration"
             path: tests/hash-backend-integration
 ''')
         first = integration.index('    # Only the top of a stack')
@@ -58,11 +59,11 @@ def generate(original, baseline_sha, candidate_sha, variant, campaign, sample, s
     key = namespace + '-${{ matrix.name }}-${{ steps.graph-build.outputs.key }}'
     prepare = f'''      - name: Prepare graph build
         id: graph-build
-        if: hashFiles('apps/hash-graph/package.json') != ''
+        if: env.HASH_GRAPH_BUILD_CACHE == '1' && hashFiles('apps/hash-graph/package.json') != ''
         run: python3 .github/actions/graph-build-cache/graph_build_cache.py prepare
 
       - name: Require graph build preparation
-        if: hashFiles('apps/hash-graph/package.json') != ''
+        if: env.HASH_GRAPH_BUILD_CACHE == '1' && hashFiles('apps/hash-graph/package.json') != ''
         env:
           PREPARED_KEY: ${{{{ steps.graph-build.outputs.key }}}}
         run: test -n "$PREPARED_KEY"
@@ -124,7 +125,7 @@ def generate(original, baseline_sha, candidate_sha, variant, campaign, sample, s
           python3 - <<'PYTHON'
           import os, pathlib, runpy
           helper = runpy.run_path('.github/actions/graph-build-cache/graph_build_cache.py')
-          valid = helper['valid_payload'](pathlib.Path('target/graph-build-cache'), os.environ['EXPECTED_KEY'])
+          valid = helper['verified_payload_digest'](pathlib.Path('target/graph-build-cache'), os.environ['EXPECTED_KEY']) is not None
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write(f'valid={{str(valid).lower()}}\\n')
           print(f'Graph payload matches prepared key: {{valid}}')
@@ -166,8 +167,47 @@ def generate(original, baseline_sha, candidate_sha, variant, campaign, sample, s
     for name in ['Launch external services', 'Start background tasks', 'Run tests']:
         block = original_steps.split(f'      - name: {name}\n', 1)[1].split('\n      - ', 1)[0]
         assert block in integration, name
+    # Native summaries time current task execution, including wrapper overhead.
+    # Apply the same instrumentation after verifying the original command bodies.
+    integration = replace_once(integration, '          turbo run compile --env-mode=loose\n',
+                               '          turbo run compile --env-mode=loose --summarize\n')
+    integration = replace_once(integration,
+        '          turbo run test:integration --env-mode=loose --filter "${{ matrix.name }}"\n',
+        '          turbo run test:integration --env-mode=loose --filter "${{ matrix.name }}" --summarize\n')
+    task_timings = '''      - name: Record current task timings
+        if: always()
+        run: |
+          python3 - <<'PYTHON'
+          import json, pathlib
+          records = []
+          fields = ['startTime', 'endTime', 'exitCode']
+          for path in sorted(pathlib.Path('.turbo/runs').glob('*.json')):
+              summary = json.loads(path.read_text())
+              assert summary['version'] == '1' and summary['turboVersion'] == '2.10.12'
+              execution = summary.get('execution') or {}
+              record = {key: summary[key] for key in ['id', 'version', 'turboVersion']}
+              record['execution'] = {key: execution.get(key) for key in ['command', *fields]}
+              record['tasks'] = []
+              for task in summary['tasks']:
+                  timing = task.get('execution') or {}
+                  record['tasks'].append({
+                      'taskId': task['taskId'], 'command': task['command'],
+                      'execution': {key: timing.get(key) for key in fields},
+                      'turbo_cache_status': task['cache']['status'],
+                      'task_cache_enabled': task['resolvedTaskDefinition']['cache'],
+                  })
+              records.append(record)
+          logs = pathlib.Path('var/logs')
+          logs.mkdir(parents=True, exist_ok=True)
+          (logs / 'turbo-task-timings.json').write_text(json.dumps(records, indent=2) + '\\n')
+          print(f'Recorded {len(records)} current Turbo summaries')
+          PYTHON
+
+'''
+    integration = replace_once(integration, '      - name: Record graph cache evidence\n',
+                               task_timings + '      - name: Record graph cache evidence\n')
     jobs = integration if scope == 'smoke' else jobs[:begin] + integration + jobs[end:]
-    if scope == 'full':
+    if scope == 'full' and variant == 'candidate':
         checker = '''  graph-build-cache-check:
     name: Graph build cache checks
     runs-on: ubuntu-24.04
@@ -212,21 +252,21 @@ run-name: ${{{{ github.ref_name }}}} / attempt ${{{{ github.run_attempt }}}}
 on:
   push:
     branches:
-      - 'speedup/integration-build-benchmark-*'
+      - "speedup/integration-build-benchmark-*"
 
 permissions:
   contents: read
 
 env:
-  TURBO_CACHE: 'local:rw'
-  TURBO_TOKEN: ''
-  CARGO_INCREMENTAL: '0'
+  TURBO_CACHE: "local:rw"
+  TURBO_TOKEN: ""
+  CARGO_INCREMENTAL: "0"
   NEXTEST_PROFILE: ci
-  BENCHMARK_BASELINE_SHA: '{baseline_sha}'
-  BENCHMARK_SOURCE_SHA: '{candidate_sha}'
-  BENCHMARK_VARIANT: '{variant}'
-  BENCHMARK_SAMPLE: '{sample}'
-  BENCHMARK_SCOPE: '{'integration-only' if scope == 'smoke' else 'complete-test'}'
+  BENCHMARK_BASELINE_SHA: "{baseline_sha}"
+  BENCHMARK_SOURCE_SHA: "{candidate_sha}"
+  BENCHMARK_VARIANT: "{variant}"
+  BENCHMARK_SAMPLE: "{sample}"
+  BENCHMARK_SCOPE: "{'integration-only' if scope == 'smoke' else 'complete-test'}"
   BENCHMARK_WORKFLOW_SHA: ${{{{ github.workflow_sha }}}}
 
 concurrency:
@@ -268,6 +308,7 @@ def main():
                 assert not re.search(r'secrets\.(?!GITHUB_TOKEN\b)', generated)
                 assert ('  unit-tests:\n' in generated) == (scope == 'full')
                 assert ('  passed:\n' in generated) == (scope == 'full')
+                assert ('  graph-build-cache-check:\n' in generated) == (scope == 'full' and variant == 'candidate')
                 assert generated == generate(original, baseline_sha, candidate_sha, variant, args.campaign, args.sample, scope)
     if args.output:
         args.output.write_text(workflow)

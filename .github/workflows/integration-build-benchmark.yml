@@ -7,21 +7,21 @@ run-name: ${{ github.ref_name }} / attempt ${{ github.run_attempt }}
 on:
   push:
     branches:
-      - 'speedup/integration-build-benchmark-*'
+      - "speedup/integration-build-benchmark-*"
 
 permissions:
   contents: read
 
 env:
-  TURBO_CACHE: 'local:rw'
-  TURBO_TOKEN: ''
-  CARGO_INCREMENTAL: '0'
+  TURBO_CACHE: "local:rw"
+  TURBO_TOKEN: ""
+  CARGO_INCREMENTAL: "0"
   NEXTEST_PROFILE: ci
-  BENCHMARK_BASELINE_SHA: '67f60d5446ed3224609161f938e1b36bc9d62f89'
-  BENCHMARK_SOURCE_SHA: '12556720a1c8a455ac8922899579f95bd5807459'
-  BENCHMARK_VARIANT: 'baseline'
-  BENCHMARK_SAMPLE: '1'
-  BENCHMARK_SCOPE: 'complete-test'
+  BENCHMARK_BASELINE_SHA: "67f60d5446ed3224609161f938e1b36bc9d62f89"
+  BENCHMARK_SOURCE_SHA: "f4dc7dd3faa93fd22120ba3ce48ece73592b5324"
+  BENCHMARK_VARIANT: "baseline"
+  BENCHMARK_SAMPLE: "1"
+  BENCHMARK_SCOPE: "complete-test"
   BENCHMARK_WORKFLOW_SHA: ${{ github.workflow_sha }}
 
 concurrency:
@@ -29,21 +29,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  graph-build-cache-check:
-    name: Graph build cache checks
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: 12556720a1c8a455ac8922899579f95bd5807459
-      - name: Check graph build reuse
-        run: python3 .github/actions/graph-build-cache/graph_build_cache_test.py
-      - name: Check timing comparison
-        run: python3 .github/scripts/integration_build_timings_test.py
-
   setup:
     runs-on: ubuntu-24.04
     permissions:
@@ -57,7 +42,7 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: 12556720a1c8a455ac8922899579f95bd5807459
+          ref: f4dc7dd3faa93fd22120ba3ce48ece73592b5324
           fetch-depth: 2
 
       - name: Install tools
@@ -118,7 +103,7 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: 12556720a1c8a455ac8922899579f95bd5807459
+          ref: f4dc7dd3faa93fd22120ba3ce48ece73592b5324
 
       - name: Mint sccache credentials
         id: mint
@@ -148,7 +133,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: 12556720a1c8a455ac8922899579f95bd5807459
+          ref: f4dc7dd3faa93fd22120ba3ce48ece73592b5324
 
       - name: Clean up disk
         uses: $/.github/actions/clean-up-disk
@@ -237,7 +222,7 @@ jobs:
   integration-tests:
     name: Integration
     env:
-      HASH_GRAPH_BUILD_CACHE: "baseline"
+      HASH_GRAPH_BUILD_CACHE: "0"
     needs: [setup, sccache-credentials]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
@@ -259,7 +244,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: 12556720a1c8a455ac8922899579f95bd5807459
+          ref: f4dc7dd3faa93fd22120ba3ce48ece73592b5324
 
       - name: Clean up disk
         uses: $/.github/actions/clean-up-disk
@@ -318,11 +303,11 @@ jobs:
 
       - name: Prepare graph build
         id: graph-build
-        if: hashFiles('apps/hash-graph/package.json') != ''
+        if: env.HASH_GRAPH_BUILD_CACHE == '1' && hashFiles('apps/hash-graph/package.json') != ''
         run: python3 .github/actions/graph-build-cache/graph_build_cache.py prepare
 
       - name: Require graph build preparation
-        if: hashFiles('apps/hash-graph/package.json') != ''
+        if: env.HASH_GRAPH_BUILD_CACHE == '1' && hashFiles('apps/hash-graph/package.json') != ''
         env:
           PREPARED_KEY: ${{ steps.graph-build.outputs.key }}
         run: test -n "$PREPARED_KEY"
@@ -333,7 +318,7 @@ jobs:
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: target/graph-build-cache
-          key: graph-build-benchmark-20260911-full-1-${{ matrix.name }}-${{ steps.graph-build.outputs.key }}
+          key: graph-build-benchmark-20260911-net-1-${{ matrix.name }}-${{ steps.graph-build.outputs.key }}
 
       - name: Find test steps to run
         id: tests
@@ -385,7 +370,7 @@ jobs:
           # `@apps/plugin-browser` which needs `build:test` instead. We cannot filter it out because
           # except when running PlayWright tests, the plugin-browser is already pruned out so the
           # command would fail.
-          turbo run compile --env-mode=loose
+          turbo run compile --env-mode=loose --summarize
           mkdir -p logs
           turbo run start:test --env-mode=loose --log-order stream >var/logs/background-task.log 2>&1 &
           PID=$!
@@ -408,7 +393,7 @@ jobs:
           python3 - <<'PYTHON'
           import os, pathlib, runpy
           helper = runpy.run_path('.github/actions/graph-build-cache/graph_build_cache.py')
-          valid = helper['valid_payload'](pathlib.Path('target/graph-build-cache'), os.environ['EXPECTED_KEY'])
+          valid = helper['verified_payload_digest'](pathlib.Path('target/graph-build-cache'), os.environ['EXPECTED_KEY']) is not None
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write(f'valid={str(valid).lower()}\n')
           print(f'Graph payload matches prepared key: {valid}')
@@ -419,12 +404,12 @@ jobs:
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: target/graph-build-cache
-          key: graph-build-benchmark-20260911-full-1-${{ matrix.name }}-${{ steps.graph-build.outputs.key }}
+          key: graph-build-benchmark-20260911-net-1-${{ matrix.name }}-${{ steps.graph-build.outputs.key }}
 
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
         run: |
-          turbo run test:integration --env-mode=loose --filter "${{ matrix.name }}"
+          turbo run test:integration --env-mode=loose --filter "${{ matrix.name }}" --summarize
           echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')" >> "$GITHUB_ENV"
 
       - name: Show disk usage
@@ -453,6 +438,35 @@ jobs:
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_report
           path: tests/hash-playwright/playwright-report
+
+      - name: Record current task timings
+        if: always()
+        run: |
+          python3 - <<'PYTHON'
+          import json, pathlib
+          records = []
+          fields = ['startTime', 'endTime', 'exitCode']
+          for path in sorted(pathlib.Path('.turbo/runs').glob('*.json')):
+              summary = json.loads(path.read_text())
+              assert summary['version'] == '1' and summary['turboVersion'] == '2.10.12'
+              execution = summary.get('execution') or {}
+              record = {key: summary[key] for key in ['id', 'version', 'turboVersion']}
+              record['execution'] = {key: execution.get(key) for key in ['command', *fields]}
+              record['tasks'] = []
+              for task in summary['tasks']:
+                  timing = task.get('execution') or {}
+                  record['tasks'].append({
+                      'taskId': task['taskId'], 'command': task['command'],
+                      'execution': {key: timing.get(key) for key in fields},
+                      'turbo_cache_status': task['cache']['status'],
+                      'task_cache_enabled': task['resolvedTaskDefinition']['cache'],
+                  })
+              records.append(record)
+          logs = pathlib.Path('var/logs')
+          logs.mkdir(parents=True, exist_ok=True)
+          (logs / 'turbo-task-timings.json').write_text(json.dumps(records, indent=2) + '\n')
+          print(f'Recorded {len(records)} current Turbo summaries')
+          PYTHON
 
       - name: Record graph cache evidence
         if: always()
@@ -492,7 +506,7 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: 12556720a1c8a455ac8922899579f95bd5807459
+          ref: f4dc7dd3faa93fd22120ba3ce48ece73592b5324
 
       - name: Clean up disk
         uses: $/.github/actions/clean-up-disk
@@ -511,12 +525,10 @@ jobs:
   passed:
     name: Tests passed
     needs:
-      [setup, sccache-credentials, unit-tests, integration-tests, publish-rust, graph-build-cache-check]
+      [setup, sccache-credentials, unit-tests, integration-tests, publish-rust]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Check graph build cache checks
-        run: test "${{ needs.graph-build-cache-check.result }}" = success
       - name: Check setup script
         run: |
           [[ ${{ needs.setup.result }} = success ]]
