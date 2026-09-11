@@ -62,6 +62,7 @@ def generate(original, baseline_sha, candidate_sha, variant, campaign, sample, s
         run: python3 .github/actions/graph-build-cache/graph_build_cache.py prepare
 
       - name: Require graph build preparation
+        if: hashFiles('apps/hash-graph/package.json') != ''
         env:
           PREPARED_KEY: ${{{{ steps.graph-build.outputs.key }}}}
         run: test -n "$PREPARED_KEY"

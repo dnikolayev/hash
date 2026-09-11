@@ -1,7 +1,7 @@
 # Fork-only harness derived from .github/workflows/test.yml.
 # Smoke measures only two integrations; it does not measure complete Test CI.
 # All samples disable remote Turbo and sccache; both variants use the same source.
-name: Integration build benchmark (smoke)
+name: Integration build benchmark (full)
 run-name: ${{ github.ref_name }} / attempt ${{ github.run_attempt }}
 
 on:
@@ -20,8 +20,8 @@ env:
   BENCHMARK_BASELINE_SHA: '67f60d5446ed3224609161f938e1b36bc9d62f89'
   BENCHMARK_SOURCE_SHA: '12556720a1c8a455ac8922899579f95bd5807459'
   BENCHMARK_VARIANT: 'baseline'
-  BENCHMARK_SAMPLE: 'smoke'
-  BENCHMARK_SCOPE: 'integration-only'
+  BENCHMARK_SAMPLE: '1'
+  BENCHMARK_SCOPE: 'complete-test'
   BENCHMARK_WORKFLOW_SHA: ${{ github.workflow_sha }}
 
 concurrency:
@@ -29,18 +29,224 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  graph-build-cache-check:
+    name: Graph build cache checks
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: 12556720a1c8a455ac8922899579f95bd5807459
+      - name: Check graph build reuse
+        run: python3 .github/actions/graph-build-cache/graph_build_cache_test.py
+      - name: Check timing comparison
+        run: python3 .github/scripts/integration_build_timings_test.py
+
+  setup:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      unit-tests: ${{ steps.packages.outputs.unit-tests }}
+      integration-tests: ${{ steps.packages.outputs.integration-tests }}
+      system-tests: ${{ steps.packages.outputs.system-tests }}
+      publish-rust: ${{ steps.packages.outputs.publish-rust }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: 12556720a1c8a455ac8922899579f95bd5807459
+          fetch-depth: 2
+
+      - name: Install tools
+        uses: $/.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          rust: false
+
+      - name: Determine changed packages
+        id: packages
+        run: |
+          UNIT_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:unit)
+          INTEGRATION_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:integration)
+
+          PUBLISH_PACKAGES=[]
+          while IFS= read -r file; do
+            if [[ -n "$file" ]]; then
+              PACKAGE_NAME=$(yq '.package.name' -p toml -oy "$file")
+              if [[ "$PACKAGE_NAME" == "null" ]]; then
+                continue
+              fi
+
+              if [[ "$(yq '.package.publish' -p toml -oy "$file")" == "false" ]]; then
+                continue
+              fi
+
+              if [[ "$(yq '.package.publish.workspace' -p toml -oy "$file")" == "true" ]]; then
+                if [[ "$(yq '.workspace.package.publish' -p toml -oy "Cargo.toml")" == "false" ]]; then
+                  continue
+                fi
+              fi
+
+              OLD_VERSION=$(git show HEAD^:"$file" | yq '.package.version' -p toml)
+              if [[ "$OLD_VERSION" == "null" ]]; then
+                continue
+              fi
+              NEW_VERSION=$(yq '.package.version' -p toml -oy "$file")
+              if [[ "$OLD_VERSION" == "$NEW_VERSION" ]]; then
+                continue
+              fi
+
+              PUBLISH_PACKAGES=$(echo "$PUBLISH_PACKAGES" | jq -c --arg package "$PACKAGE_NAME" '. += [$package]')
+            fi
+          done <<< "$(find . -name 'Cargo.toml' -type f | sed 's|\./||')"
+
+          echo "unit-tests=$UNIT_TEST_PACKAGES" | tee -a "$GITHUB_OUTPUT"
+          echo "integration-tests=$INTEGRATION_TEST_PACKAGES" | tee -a "$GITHUB_OUTPUT"
+          echo "publish-rust=$PUBLISH_PACKAGES" | tee -a "$GITHUB_OUTPUT"
+
+  sccache-credentials:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: 12556720a1c8a455ac8922899579f95bd5807459
+
+      - name: Mint sccache credentials
+        id: mint
+        uses: $/.github/actions/mint-sccache-credentials
+        with:
+          vault_address: ""
+          cf_access_client_id: ""
+          cf_access_client_secret: ""
+          encryption_key: ""
+
+  unit-tests:
+    name: Unit
+    needs: [setup, sccache-credentials]
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.unit-tests) }}
+      fail-fast: false
+    if: needs.setup.outputs.unit-tests != '{"name":[],"include":[]}'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Show selection reason
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX"
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: 12556720a1c8a455ac8922899579f95bd5807459
+
+      - name: Clean up disk
+        uses: $/.github/actions/clean-up-disk
+
+      - name: Install tools
+        uses: $/.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          encrypted_sccache_credentials: ""
+          sccache_encryption_key: ""
+
+      - name: Prune repository
+        uses: $/.github/actions/prune-repository
+        with:
+          scope: |
+            ${{ matrix.name }}
+            @rust/hash-repo-chores
+
+      - name: Warm up repository
+        uses: $/.github/actions/warm-up-repo
+
+      - name: Find test steps to run
+        id: tests
+        run: |
+          HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
+          echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
+
+          if [[ "$HAS_RUST" == "true" ]]; then
+            echo "COVERAGE_KEY=rust" >> "$GITHUB_ENV"
+          else
+            echo "COVERAGE_KEY=javascript" >> "$GITHUB_ENV"
+          fi
+
+      - name: Show disk usage
+        run: df -h
+
+      - name: Run tests
+        continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
+        env:
+          TEST_COVERAGE: ${{ github.event_name != 'merge_group' }}
+        run: |
+          turbo run test:unit --env-mode=loose --filter "${{ matrix.name }}"
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')" >> "$GITHUB_ENV"
+
+      - name: Show disk usage
+        run: df -h
+
+      - uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
+        with:
+          flags: ${{ env.TRIMMED_PACKAGE_NAME }}
+          token: "" ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
+
+      - name: Run miri
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        run: |
+          turbo run test:miri --filter "${{ matrix.name }}"
+
+      - name: Show sccache logs
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        run: |
+          grep "CannotCache" /tmp/sccache.log | while IFS= read -r line; do
+            # Extract reason - format as "reason1 (reason2)" if comma-separated, otherwise just "reason"
+            if echo "$line" | grep -qE 'CannotCache\([^,]+, [^)]+\):'; then
+              reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^,]+), ([^)]+)\):.*/\1 (\2)/')
+            else
+              reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^)]+)\):.*/\1/')
+            fi
+
+            # Extract crate name if present
+            if echo "$line" | grep -q '"--crate-name"'; then
+              crate=$(echo "$line" | sed -E 's/.*"--crate-name", "([^"]+)".*/\1/')
+            else
+              crate="<no crate name>"
+            fi
+
+            # Extract args
+            args=$(echo "$line" | sed -E 's/.*CannotCache\([^)]+\): (\[.+\])$/\1/')
+
+            echo ""
+            echo "reason: $reason"
+            echo "crate:  $crate"
+            echo "args:   $args"
+          done
+
   integration-tests:
     name: Integration
     env:
       HASH_GRAPH_BUILD_CACHE: "baseline"
+    needs: [setup, sccache-credentials]
     strategy:
-      matrix:
-        include:
-          - name: '@tests/hash-playwright'
-            path: tests/hash-playwright
-          - name: '@tests/hash-backend-integration'
-            path: tests/hash-backend-integration
+      matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
       fail-fast: false
+    # Only the top of a stack runs integration tests: it contains every layer below it.
+    if: >-
+      needs.setup.outputs.integration-tests != '{"name":[],"include":[]}'
+      && (github.event.pull_request.stack == null
+      || github.event.pull_request.stack.position == github.event.pull_request.stack.size)
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -116,6 +322,7 @@ jobs:
         run: python3 .github/actions/graph-build-cache/graph_build_cache.py prepare
 
       - name: Require graph build preparation
+        if: hashFiles('apps/hash-graph/package.json') != ''
         env:
           PREPARED_KEY: ${{ steps.graph-build.outputs.key }}
         run: test -n "$PREPARED_KEY"
@@ -126,7 +333,7 @@ jobs:
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: target/graph-build-cache
-          key: graph-build-benchmark-20260911-check-smoke-${{ matrix.name }}-${{ steps.graph-build.outputs.key }}
+          key: graph-build-benchmark-20260911-full-1-${{ matrix.name }}-${{ steps.graph-build.outputs.key }}
 
       - name: Find test steps to run
         id: tests
@@ -212,7 +419,7 @@ jobs:
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: target/graph-build-cache
-          key: graph-build-benchmark-20260911-check-smoke-${{ matrix.name }}-${{ steps.graph-build.outputs.key }}
+          key: graph-build-benchmark-20260911-full-1-${{ matrix.name }}-${{ steps.graph-build.outputs.key }}
 
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
@@ -275,3 +482,53 @@ jobs:
           path: |
             var/api
             var/logs
+
+  publish-rust:
+    name: Publish dry run (Rust)
+    needs: [setup]
+    if: needs.setup.outputs.publish-rust != '[]' && (github.event_name == 'pull_request' || github.event_name == 'merge_group')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: 12556720a1c8a455ac8922899579f95bd5807459
+
+      - name: Clean up disk
+        uses: $/.github/actions/clean-up-disk
+
+      - name: Build package flags
+        id: flags
+        env:
+          PUBLISH_PACKAGES: ${{ needs.setup.outputs.publish-rust }}
+        run: |
+          PACKAGES=$(echo "$PUBLISH_PACKAGES" | jq -r '.[]' | while read -r pkg; do echo -n "-p $pkg "; done)
+          echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Publish (dry run)
+        run: cargo publish --all-features --dry-run --no-verify ${{ steps.flags.outputs.packages }}
+
+  passed:
+    name: Tests passed
+    needs:
+      [setup, sccache-credentials, unit-tests, integration-tests, publish-rust, graph-build-cache-check]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check graph build cache checks
+        run: test "${{ needs.graph-build-cache-check.result }}" = success
+      - name: Check setup script
+        run: |
+          [[ ${{ needs.setup.result }} = success ]]
+      - name: Check sccache credentials
+        run: |
+          [[ ${{ needs.sccache-credentials.result }} = success ]]
+      - name: Check unit tests
+        run: |
+          [[ ${{ needs.unit-tests.result }} =~ success|skipped ]]
+      - name: Check integration tests
+        run: |
+          [[ ${{ needs.integration-tests.result }} =~ success|skipped ]]
+      - name: Check publish results
+        run: |
+          [[ ${{ needs.publish-rust.result }} =~ success|skipped ]]
