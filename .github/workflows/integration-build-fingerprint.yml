@@ -1,0 +1,187 @@
+# Fork-only Playwright fingerprint diagnostic; no build-output restore or graph build.
+# This workflow stops after preparation and does not validate integrations or performance.
+name: Playwright fingerprint diagnostic
+run-name: ${{ github.ref_name }} / attempt ${{ github.run_attempt }}
+
+on:
+  push:
+    branches:
+      - "speedup/integration-build-fingerprint-*"
+
+permissions:
+  contents: read
+
+env:
+  TURBO_CACHE: "local:rw"
+  TURBO_TOKEN: ""
+  CARGO_INCREMENTAL: "0"
+  NEXTEST_PROFILE: ci
+  BENCHMARK_BASELINE_SHA: "67f60d5446ed3224609161f938e1b36bc9d62f89"
+  BENCHMARK_SOURCE_SHA: "7f728cd4fc23c2467968a27e0d5a27c7bbb41930"
+  BENCHMARK_VARIANT: "candidate"
+  BENCHMARK_SAMPLE: "1"
+  BENCHMARK_SCOPE: "fingerprint-only"
+  BENCHMARK_WORKFLOW_SHA: ${{ github.workflow_sha }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playwright-fingerprint:
+    name: Playwright fingerprint (${{ matrix.probe }})
+    env:
+      HASH_GRAPH_BUILD_CACHE: "1"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - probe: "1"
+            name: "@tests/hash-playwright"
+            path: tests/hash-playwright
+          - probe: "2"
+            name: "@tests/hash-playwright"
+            path: tests/hash-playwright
+          - probe: "3"
+            name: "@tests/hash-playwright"
+            path: tests/hash-playwright
+          - probe: "4"
+            name: "@tests/hash-playwright"
+            path: tests/hash-playwright
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Show selection reason
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX"
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: 7f728cd4fc23c2467968a27e0d5a27c7bbb41930
+
+      - name: Clean up disk
+        uses: $/.github/actions/clean-up-disk
+
+      - name: Install tools
+        uses: $/.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          encrypted_sccache_credentials: ""
+          sccache_encryption_key: ""
+
+      - name: Prune repository
+        uses: $/.github/actions/prune-repository
+        with:
+          scope: |
+            ${{ matrix.name }}
+
+      - name: Warm up repository
+        uses: $/.github/actions/warm-up-repo
+
+      - name: Record benchmark environment
+        run: |
+          mkdir -p var/logs
+          python3 - <<'PYTHON'
+          import json, os, pathlib, platform, subprocess
+          def output(command):
+              return subprocess.check_output(command, text=True).strip()
+          record = {
+              'baseline_sha': os.environ['BENCHMARK_BASELINE_SHA'],
+              'candidate_sha': os.environ['BENCHMARK_SOURCE_SHA'],
+              'checkout_sha': output(['git', 'rev-parse', 'HEAD']),
+              'variant': os.environ['BENCHMARK_VARIANT'],
+              'sample': os.environ['BENCHMARK_SAMPLE'],
+              'scope': os.environ['BENCHMARK_SCOPE'],
+              'workflow_sha': os.environ['BENCHMARK_WORKFLOW_SHA'],
+              'run_id': os.environ['GITHUB_RUN_ID'],
+              'run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'runner_arch': os.environ['RUNNER_ARCH'],
+              'runner_os': os.environ['RUNNER_OS'],
+              'runner_name': os.environ['RUNNER_NAME'],
+              'image_version': os.environ.get('ImageVersion'),
+              'platform': platform.platform(),
+              'cpu_count': os.cpu_count(),
+              'rustc': output(['rustc', '-vV']),
+              'cargo': output(['cargo', '--version']),
+              'node': output(['node', '--version']),
+              'turbo': output(['turbo', '--version']),
+              'turbo_cache': os.environ['TURBO_CACHE'],
+              'cargo_incremental': os.environ['CARGO_INCREMENTAL'],
+              'sccache': 'disabled',
+          }
+          text = json.dumps(record, indent=2)
+          pathlib.Path('var/logs/benchmark-environment.json').write_text(text + '\n')
+          print(text)
+          PYTHON
+
+      - name: Prepare graph build
+        id: graph-build
+        if: env.HASH_GRAPH_BUILD_CACHE == '1' && hashFiles('apps/hash-graph/package.json') != ''
+        run: python3 .github/actions/graph-build-cache/graph_build_cache.py prepare
+
+      - name: Require graph build preparation
+        if: env.HASH_GRAPH_BUILD_CACHE == '1' && hashFiles('apps/hash-graph/package.json') != ''
+        env:
+          PREPARED_KEY: ${{ steps.graph-build.outputs.key }}
+        run: test -n "$PREPARED_KEY"
+
+      - name: Record fingerprint components
+        if: always() && steps.graph-build.outputs.key != ''
+        env:
+          DIAGNOSTIC_PROBE: ${{ matrix.probe }}
+          DIAGNOSTIC_PREPARED_KEY: ${{ steps.graph-build.outputs.key }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os, pathlib, platform, re, runpy
+          root = pathlib.Path.cwd()
+          helper = runpy.run_path('.github/actions/graph-build-cache/graph_build_cache.py')
+          prepared = json.loads(pathlib.Path('target/graph-build-inputs.json').read_text())
+          inputs = prepared['inputs']
+          assert set(inputs) == {'schema', 'command', 'sources', 'resolution', 'environment', 'tools', 'machine'}
+          assert inputs['schema'] == 1 and inputs['command'] == helper['COMMAND']
+          assert all(re.fullmatch('[0-9a-f]{64}', inputs[name]) for name in ['sources', 'resolution', 'environment', 'tools', 'machine'])
+          cpu_lines = sorted({line for line in pathlib.Path('/proc/cpuinfo').read_text().splitlines()
+                              if line.split(':', 1)[0].strip() in
+                              {'model name', 'flags', 'Features', 'CPU implementer', 'CPU part'}})
+          machine = {'platform': platform.platform(), 'machine': platform.machine(),
+                     'image': os.environ.get('ImageVersion', ''), 'root': str(root),
+                     'os': helper['file_digest'](pathlib.Path('/etc/os-release')),
+                     'cpu': helper['digest']('\n'.join(cpu_lines).encode())}
+          aggregate = helper['digest'](helper['encoded'](machine))
+          helper_aggregate = helper['machine_digest'](root, dict(os.environ))
+          key = 'graph-build-v1-' + helper['digest'](helper['encoded'](inputs))
+          record = {
+              'schema': 1, 'scope': 'fingerprint-only', 'probe': os.environ['DIAGNOSTIC_PROBE'],
+              'source_sha': os.environ['BENCHMARK_SOURCE_SHA'],
+              'workflow_sha': os.environ['BENCHMARK_WORKFLOW_SHA'],
+              'run_id': os.environ['GITHUB_RUN_ID'], 'run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'prepared_key': prepared['key'], 'inputs': inputs,
+              'machine_components': {
+                  'platform': machine['platform'], 'machine': machine['machine'], 'image': machine['image'],
+                  'root_sha256': helper['digest'](machine['root'].encode()),
+                  'os_release_sha256': machine['os'], 'cpu_sha256': machine['cpu'],
+                  'cpu_lines': cpu_lines,
+              },
+              'machine_sha256': aggregate, 'helper_machine_sha256': helper_aggregate,
+              'machine_matches_prepared': aggregate == inputs['machine'] == helper_aggregate,
+              'key_matches_prepared': key == prepared['key'] == os.environ['DIAGNOSTIC_PREPARED_KEY'],
+          }
+          path = pathlib.Path('var/logs/graph-fingerprint-diagnostic.json')
+          path.parent.mkdir(parents=True, exist_ok=True)
+          path.write_text(json.dumps(record, indent=2) + '\n')
+          print(json.dumps(record))
+          assert record['machine_matches_prepared'] and record['key_matches_prepared']
+          PYTHON
+
+      - name: Upload fingerprint diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: graph-fingerprint-pw-${{ matrix.probe }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          path: |
+            var/logs/graph-fingerprint-diagnostic.json
+            target/graph-build-inputs.json
