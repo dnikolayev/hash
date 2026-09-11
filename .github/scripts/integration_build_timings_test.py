@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Focused timing checks using synthetic REST responses."""
 
+import copy
 import importlib.util
 import json
 from pathlib import Path
@@ -28,6 +29,36 @@ def job(identifier, name, end, conclusion="success"):
     }
 
 
+def task_summaries():
+    def execution(start, end):
+        return {"startTime": 1767225600000 + start, "endTime": 1767225600000 + end,
+                "exitCode": 0}
+
+    return [
+        {"id": "compile-summary", "version": "1", "turboVersion": "2.10.12",
+         "execution": {"command": "turbo run compile", **execution(11000, 19000)},
+         "tasks": [
+             {"taskId": "@apps/hash-graph#compile", "command": "cargo build --bin hash-graph",
+              "execution": execution(13250, 17500), "turbo_cache_status": "MISS",
+              "task_cache_enabled": False},
+             {"taskId": "@example/library#compile", "command": "tsc",
+              "execution": execution(11000, 12000), "turbo_cache_status": "HIT",
+              "task_cache_enabled": True},
+         ]},
+        {"id": "test-summary", "version": "1", "turboVersion": "2.10.12",
+         "execution": {"command": "turbo run test:integration --filter=@tests/example",
+                       **execution(20000, 45000)},
+         "tasks": [
+             {"taskId": "@apps/hash-graph#compile", "command": "cargo build --bin hash-graph",
+              "execution": execution(20000, 21000), "turbo_cache_status": "MISS",
+              "task_cache_enabled": False},
+             {"taskId": "@tests/example#test:integration", "command": "playwright test",
+              "execution": execution(22125, 40375), "turbo_cache_status": "MISS",
+              "task_cache_enabled": False},
+         ]},
+    ]
+
+
 class TimingEvidenceTests(unittest.TestCase):
     def test_parallel_wall_is_not_sum_and_missing_phases_are_not_zero(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -51,6 +82,20 @@ class TimingEvidenceTests(unittest.TestCase):
             self.assertIn("graph preparation", output["runs"][0]["jobs"][0]["missing_phases"])
             self.assertEqual(output["runs"][1]["exclusions"], ["duplicate run attempt"])
             self.assertTrue(all(row["seconds_saved"] is None for row in output["comparisons"]))
+            entry["task_timings"] = {"Browser": "task-timings.json"}
+            summaries = task_summaries()
+            (directory / "task-timings.json").write_text(json.dumps(summaries))
+            projected = TIMINGS.report({"runs": [entry]}, directory)["runs"][0]
+            self.assertEqual(projected["task_timings"], entry["task_timings"])
+            self.assertEqual(projected["metrics_seconds"]["Browser / initial graph compile task"], 4.25)
+            self.assertEqual(projected["metrics_seconds"]["Browser / selected integration test task"], 18.25)
+            self.assertEqual(projected["metrics_seconds"]["Browser / test execution"], 20)
+            summaries[1]["tasks"][1]["turbo_cache_status"] = "HIT"
+            (directory / "task-timings.json").write_text(json.dumps(summaries))
+            cached = TIMINGS.report({"runs": [entry]}, directory)["runs"][0]
+            self.assertNotIn("Browser / selected integration test task", cached["metrics_seconds"])
+            self.assertIn("cached", cached["jobs"][0]["task_timing_issues"][0])
+            self.assertEqual(cached["metrics_seconds"]["Browser / test execution"], 20)
             pages[1]["jobs"][0]["conclusion"] = "failure"
             (directory / "jobs.json").write_text(json.dumps(pages))
             failed = TIMINGS.report({"runs": [entry]}, directory)
@@ -60,6 +105,40 @@ class TimingEvidenceTests(unittest.TestCase):
             (directory / "jobs.json").write_text(json.dumps(pages))
             invalid = TIMINGS.report({"runs": [entry]}, directory)
             self.assertIn("different run or attempt", invalid["runs"][0]["exclusions"][0])
+
+    def test_task_summaries_reject_missing_cached_duplicate_or_invalid_execution(self):
+        valid = task_summaries()
+        cases = []
+        for field, value, message in (
+            ("startTime", None, "epoch milliseconds"),
+            ("endTime", 1767225610000, "negative"),
+            ("endTime", 1767225620000, "outside invocation"),
+            ("exitCode", None, "incomplete"),
+        ):
+            summaries = copy.deepcopy(valid)
+            summaries[0]["tasks"][0]["execution"][field] = value
+            cases.append((message, summaries))
+        for field, value, message in (
+            ("turbo_cache_status", "HIT", "cached"),
+            ("task_cache_enabled", True, "disable Turbo caching"),
+            ("taskId", "@example/other#compile", "missing matched task"),
+        ):
+            summaries = copy.deepcopy(valid)
+            summaries[0]["tasks"][0][field] = value
+            cases.append((message, summaries))
+        for field, value in (("version", "2"), ("turboVersion", "2.11.0")):
+            summaries = copy.deepcopy(valid)
+            summaries[0][field] = value
+            cases.append(("unsupported", summaries))
+        cases.append(("missing invocation", valid[:1]))
+        cases.append(("duplicate task summary", valid + [valid[0]]))
+        cases.append(("duplicate invocation", valid + [{**valid[0], "id": "another-compile"}]))
+        summaries = copy.deepcopy(valid)
+        summaries[0]["tasks"].append(summaries[0]["tasks"][0])
+        cases.append(("duplicate task ids", summaries))
+        for message, summaries in cases:
+            with self.subTest(reason=message), self.assertRaisesRegex(ValueError, message):
+                TIMINGS.measure_tasks(summaries, job(1, "Browser", 100))
 
     def test_incomplete_pages_duplicate_jobs_and_wrong_attempt_are_rejected(self):
         with self.assertRaisesRegex(ValueError, "incomplete"):

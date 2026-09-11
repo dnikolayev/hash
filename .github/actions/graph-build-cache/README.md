@@ -59,10 +59,12 @@ runner.
 
 ## Performance validation
 
-`HASH_GRAPH_BUILD_CACHE=baseline` selects the same preparation and compiler
-environment while disabling output reuse. This is intended for a paired benchmark;
-normal integration CI uses `1`. Phase events use a monotonic clock and are emitted
-by the current invocation, independently of Turbo's cached logs.
+Measure the complete change against the original Cargo command with reuse disabled
+(`HASH_GRAPH_BUILD_CACHE=0`). The candidate uses `1` and pays all preparation,
+validation, transfer and storage costs. The diagnostic `baseline` mode uses the
+candidate's preparation and compiler environment without output reuse; it does
+not measure the net change from existing CI. Phase events use a monotonic clock
+and are emitted by the current invocation, independently of Turbo's cached logs.
 
 Save the run and all job pages for every attempt, including failures. The timing
 comparison accepts a JSON manifest and reports sample counts, medians, ranges,
@@ -72,6 +74,11 @@ seconds:
 ```sh
 python3 .github/scripts/integration-build-timings.py manifest.json > comparison.json
 ```
+
+The optional `task_timings` manifest field maps exact job names to compact native
+Turbo run summaries. It separates initial graph compilation and the selected
+integration test task from their enclosing workflow steps. Only complete current
+executions count; missing or cached task evidence is reported as unavailable.
 
 The script documents the manifest and retrieval commands. Complete Test workflows
 and integration-only subsets must have different scope labels. Fork runs without
