@@ -179,7 +179,8 @@ class GraphBuildCache(unittest.TestCase):
         # Cargo links its final output from deps, removing old paths before relinking.
         dependency_output = self.root / "target/debug/deps/hash-graph-example"
         dependency_output.parent.mkdir(parents=True, exist_ok=True)
-        os.link(self.output, dependency_output)
+        shutil.copy2(self.output, dependency_output)
+        self.assertFalse(dependency_output.samefile(old_binary))
         before = old_binary.read_bytes()
         key = self.key()
         with cache.build_lock(self.root):
@@ -201,6 +202,46 @@ class GraphBuildCache(unittest.TestCase):
                 self.assertEqual(cache.compile_graph(self.root, self.env), 0)
                 build.assert_called_once()
 
+    def test_corrupted_snapshot_recovers_from_fresh_cargo_dependency_output(self) -> None:
+        dependency_output = self.root / "target/debug/deps/hash_graph-example"
+
+        def uplift(command, *, cwd, env):
+            if not dependency_output.exists():
+                binary(dependency_output, b"original executable body")
+            self.output.unlink(missing_ok=True)
+            os.link(dependency_output, self.output)
+            return subprocess.CompletedProcess(command, 0)
+
+        for name, corrupt in (("runtime", self.output), ("payload", self.payload / "hash-graph")):
+            with self.subTest(corrupt=name), patch.object(cache.subprocess, "run", side_effect=uplift) as build:
+                shutil.rmtree(self.root / "target", ignore_errors=True)
+                self.assertEqual(cache.compile_graph(self.root, self.env), 0)
+                original = dependency_output.read_bytes()
+                self.assertTrue(self.output.samefile(self.payload / "hash-graph"))
+                with corrupt.open("r+b") as stream:
+                    stream.seek(64)
+                    stream.write(b"corrupted")
+                self.assertTrue(cache.executable(corrupt))
+                self.assertIsNone(cache.verified_payload_digest(self.payload, self.key()))
+                self.assertEqual(cache.compile_graph(self.root, self.env), 0)
+                self.assertEqual(build.call_count, 2)
+                self.assertEqual(self.output.read_bytes(), original)
+                self.assertEqual(dependency_output.read_bytes(), original)
+                self.assertFalse(self.output.samefile(dependency_output))
+                self.assertTrue(self.output.samefile(self.payload / "hash-graph"))
+                self.assertIsNotNone(cache.verified_payload_digest(self.payload, self.key()))
+                with patch.object(cache, "fingerprint", side_effect=cache.NoReuse):
+                    self.assertEqual(cache.compile_graph(self.root, self.env), 0)
+                self.assertTrue(self.output.samefile(dependency_output))
+                with patch.object(cache, "file_digest", wraps=cache.file_digest) as hashes:
+                    self.assertEqual(cache.compile_graph(self.root, self.env), 0)
+                self.assertEqual(build.call_count, 3)
+                self.assertFalse(self.output.samefile(dependency_output))
+                self.assertTrue(self.output.samefile(self.payload / "hash-graph"))
+                binary_hashes = [call.args[0] for call in hashes.call_args_list
+                                 if call.args[0] in {self.output, self.payload / "hash-graph"}]
+                self.assertEqual(binary_hashes, [self.payload / "hash-graph"])
+
     def test_copy_fallback_and_atomic_staging_cleanup(self) -> None:
         with patch.object(cache.os, "link", side_effect=OSError(errno.EXDEV, "cross-device link")):
             with self.compile():
@@ -216,8 +257,14 @@ class GraphBuildCache(unittest.TestCase):
             with self.assertRaises(OSError):
                 cache.link_or_copy_binary(self.payload / "hash-graph", self.output)
         self.assertEqual(self.output.read_bytes(), before)
+        payload_before = (self.payload / "hash-graph").read_bytes()
+        with patch.object(cache.shutil, "copy2", side_effect=OSError("synthetic copy failure")):
+            with self.assertRaises(OSError):
+                cache.write_payload(self.payload, self.output, self.key())
+        self.assertEqual((self.payload / "hash-graph").read_bytes(), payload_before)
+        self.assertEqual(self.output.read_bytes(), before)
         self.assertEqual(list((self.root / "target").rglob(".hash-graph-*")), [])
-        self.assertEqual(list((self.root / "target").rglob(".manifest-*")), [])
+        self.assertEqual(list((self.root / "target").rglob(".snapshot-*")), [])
 
     def test_tar_payload_restores_without_external_hardlink(self) -> None:
         with self.compile():

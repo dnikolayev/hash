@@ -263,13 +263,18 @@ def write_payload(payload: Path, binary: Path, key: str) -> None:
     if payload.is_symlink() or any((payload / name).is_symlink()
                                     for name in ("hash-graph", "manifest.json")):
         raise NoReuse("payload-symlink")
+    if not regular(binary):
+        raise NoReuse("binary-not-regular")
     payload.mkdir(parents=True, exist_ok=True)
-    link_or_copy_binary(binary, payload / "hash-graph")
-    with tempfile.TemporaryDirectory(dir=payload, prefix=".manifest-") as directory:
+    with tempfile.TemporaryDirectory(dir=payload, prefix=".snapshot-") as directory:
+        snapshot = Path(directory) / "hash-graph"
+        # Cargo may retain a hardlink in deps; cache corruption must not reach it.
+        shutil.copy2(binary, snapshot)
         manifest = Path(directory) / "manifest.json"
         manifest.write_text(json.dumps(
-            {"key": key, "sha256": file_digest(payload / "hash-graph")}
+            {"key": key, "sha256": file_digest(snapshot)}
         ) + "\n")
+        os.replace(snapshot, payload / "hash-graph")
         os.replace(manifest, payload / "manifest.json")
 
 
@@ -324,9 +329,7 @@ def _compile_graph_locked(root: Path, original: dict[str, str]) -> int:
     started = time.monotonic()
     payload_hash = verified_payload_digest(payload, key) if mode == "1" else None
     if payload_hash is not None:
-        if not executable(binary) or (
-            not binary.samefile(payload / "hash-graph") and file_digest(binary) != payload_hash
-        ):
+        if not regular(binary) or not binary.samefile(payload / "hash-graph"):
             link_or_copy_binary(payload / "hash-graph", binary)
         event("restore", "hit", started, key)
         return 0
@@ -347,6 +350,7 @@ def _compile_graph_locked(root: Path, original: dict[str, str]) -> int:
         after, _, _ = fingerprint(root, original)
         if after == key:
             write_payload(payload, binary, key)
+            link_or_copy_binary(payload / "hash-graph", binary)
             event("store", "ready", started, key)
         else:
             event("reject", "inputs-or-output-changed", started, key)

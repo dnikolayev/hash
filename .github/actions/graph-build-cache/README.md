@@ -11,13 +11,16 @@ executable and its input key and SHA-256 digest. It contains no migrations,
 databases, readiness results, test results, or frontend bundles. Existing service
 startup, migration, healthcheck and integration commands still execute.
 
-Within a runner, storage and restoration use atomic hardlinks with a copy fallback.
-Each hit verifies the payload checksum; when the live executable shares that inode,
-it does not need a second checksum pass. A local lock outside the cached payload
-serializes compiler invocations, including unsupported-environment fallbacks, and
-upload validation. Cargo removes its prior output before relinking, so rebuilding
-does not overwrite a retained payload inode. Cache upload remains after successful
-startup healthchecks and before the integration command can request another build.
+Storage copies the Cargo output once into an independent payload inode, then
+replaces the live executable with an atomic hardlink to the payload. This prevents
+payload or runtime corruption from reaching Cargo's retained output in `deps`.
+Restoration also uses an atomic hardlink, with a copy fallback when links are
+unavailable. Each hit verifies the payload checksum and replaces any live file
+that does not share the payload inode, without hashing the file being replaced.
+A local lock outside the cached payload serializes compiler invocations, including
+unsupported-environment fallbacks, and upload validation. Cache upload remains
+after successful startup healthchecks and before the integration command can
+request another build.
 
 ## Input and trust boundaries
 
@@ -62,9 +65,9 @@ python3 .github/scripts/integration_build_timings_test.py
 The colocated unit checks use synthetic source trees and compiler outputs. They
 cover direct/transitive/generated/non-Rust inputs, dependency and tool changes,
 unsupported environments, malformed or absent payloads, failed builds, and
-restoration permissions, concurrent compilation, shared-inode corruption, copy
-fallback and archive restoration. They do not substitute for integration tests on
-a fresh runner.
+restoration permissions, concurrent compilation, shared-inode corruption followed
+by Cargo reusing its retained output, copy fallback and archive restoration. They
+do not substitute for integration tests on a fresh runner.
 
 ## Performance validation
 
