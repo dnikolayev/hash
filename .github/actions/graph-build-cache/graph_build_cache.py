@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -263,27 +264,54 @@ def write_payload(payload: Path, binary: Path, key: str) -> None:
                                     for name in ("hash-graph", "manifest.json")):
         raise NoReuse("payload-symlink")
     payload.mkdir(parents=True, exist_ok=True)
-    copy_binary(binary, payload / "hash-graph")
-    (payload / "manifest.json").write_text(json.dumps(
-        {"key": key, "sha256": file_digest(payload / "hash-graph")}
-    ) + "\n")
+    link_or_copy_binary(binary, payload / "hash-graph")
+    with tempfile.TemporaryDirectory(dir=payload, prefix=".manifest-") as directory:
+        manifest = Path(directory) / "manifest.json"
+        manifest.write_text(json.dumps(
+            {"key": key, "sha256": file_digest(payload / "hash-graph")}
+        ) + "\n")
+        os.replace(manifest, payload / "manifest.json")
 
 
-def copy_binary(source: Path, destination: Path) -> None:
+def link_or_copy_binary(source: Path, destination: Path) -> None:
+    if not regular(source):
+        raise NoReuse("binary-not-regular")
     destination.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(dir=destination.parent, prefix=".hash-graph-", delete=False) as stream:
-        temporary = Path(stream.name)
-    try:
-        shutil.copy2(source, temporary)
+    with tempfile.TemporaryDirectory(dir=destination.parent, prefix=".hash-graph-") as directory:
+        temporary = Path(directory) / "hash-graph"
+        try:
+            os.link(source, temporary, follow_symlinks=False)
+        except OSError:
+            shutil.copy2(source, temporary)
         os.replace(temporary, destination)
-    finally:
-        temporary.unlink(missing_ok=True)
+
+
+@contextmanager
+def build_lock(root: Path):
+    # Reuse is Linux-only; unsupported Windows callers retain the Cargo fallback.
+    if os.name == "nt":
+        yield
+        return
+    import fcntl
+
+    target = root / "target"
+    target.mkdir(parents=True, exist_ok=True)
+    with (target / "graph-build-cache.lock").open("a+b") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        yield
 
 
 def compile_graph(root: Path, original: dict[str, str]) -> int:
-    mode = original.get("HASH_GRAPH_BUILD_CACHE")
-    if mode not in {"1", "baseline"}:
+    if original.get("HASH_GRAPH_BUILD_CACHE") not in {"1", "baseline"}:
         return subprocess.run(COMMAND, cwd=root / "apps/hash-graph", env=original).returncode
+    started = time.monotonic()
+    with build_lock(root):
+        event("lock", "acquired", started)
+        return _compile_graph_locked(root, original)
+
+
+def _compile_graph_locked(root: Path, original: dict[str, str]) -> int:
+    mode = original["HASH_GRAPH_BUILD_CACHE"]
     started = time.monotonic()
     try:
         key, env, _ = fingerprint(root, original)
@@ -296,8 +324,10 @@ def compile_graph(root: Path, original: dict[str, str]) -> int:
     started = time.monotonic()
     payload_hash = verified_payload_digest(payload, key) if mode == "1" else None
     if payload_hash is not None:
-        if not executable(binary) or file_digest(binary) != payload_hash:
-            copy_binary(payload / "hash-graph", binary)
+        if not executable(binary) or (
+            not binary.samefile(payload / "hash-graph") and file_digest(binary) != payload_hash
+        ):
+            link_or_copy_binary(payload / "hash-graph", binary)
         event("restore", "hit", started, key)
         return 0
     if mode == "1":
@@ -338,6 +368,8 @@ def prepare(root: Path, original: dict[str, str]) -> str:
         if content["scripts"]["compile"] not in {" ".join(COMMAND), WRAPPER}:
             raise NoReuse("custom-compile-command")
         previous = package_before
+        with build_lock(root):
+            pass
         content["scripts"]["compile"] = WRAPPER
         package.write_text(json.dumps(content, indent=2) + "\n")
         key, _, inputs = fingerprint(root, original)

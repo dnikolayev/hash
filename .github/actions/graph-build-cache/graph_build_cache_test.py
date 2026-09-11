@@ -4,11 +4,15 @@
 from __future__ import annotations
 
 import contextlib
+import errno
 import io
 import json
+import multiprocessing
+import os
 from pathlib import Path
 import shutil
 import subprocess
+import tarfile
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -64,14 +68,14 @@ class GraphBuildCache(unittest.TestCase):
     def key(self) -> str:
         return cache.fingerprint(self.root, self.env)[0]
 
-    def compile(self, code: int = 0, mutation=None, produce: bool = True):
+    def compile(self, code: int = 0, mutation=None, produce: bool = True, content: bytes = b"compiled"):
         def build(command, *, cwd, env):
             self.assertEqual(command, cache.COMMAND)
             self.assertEqual(cwd, self.root / "apps/hash-graph")
             if mutation:
                 mutation()
             if not code and produce:
-                binary(self.output)
+                binary(self.output, content)
             return subprocess.CompletedProcess(command, code)
         return patch.object(cache.subprocess, "run", side_effect=build)
 
@@ -85,11 +89,154 @@ class GraphBuildCache(unittest.TestCase):
             self.assertEqual(cache.compile_graph(self.root, self.env), 0)
             build.assert_not_called()
         self.assertEqual(self.output.read_bytes(), (self.payload / "hash-graph").read_bytes())
+        self.assertTrue(self.output.samefile(self.payload / "hash-graph"))
         inode = self.output.stat().st_ino
+        with self.compile() as build, patch.object(cache, "file_digest", wraps=cache.file_digest) as hashes:
+            self.assertEqual(cache.compile_graph(self.root, self.env), 0)
+            build.assert_not_called()
+        binary_hashes = [call.args[0] for call in hashes.call_args_list
+                         if call.args[0] in {self.output, self.payload / "hash-graph"}]
+        self.assertEqual(binary_hashes, [self.payload / "hash-graph"])
+        self.assertEqual(inode, self.output.stat().st_ino)
+
+    @unittest.skipUnless("fork" in multiprocessing.get_all_start_methods(), "requires POSIX processes")
+    def test_concurrent_compilers_and_fallback_share_one_lock(self) -> None:
+        context = multiprocessing.get_context("fork")
+        fingerprint = cache.fingerprint
+        for fallback in (False, True):
+            with self.subTest(fallback=fallback):
+                shutil.rmtree(self.payload, ignore_errors=True)
+                entered = context.Event()
+                release = context.Event()
+                second_started = context.Event()
+                overlapping_build = context.Event()
+                builds = context.Value("i", 0)
+
+                def inspect(root, env):
+                    if env.get("UNSUPPORTED"):
+                        raise cache.NoReuse("synthetic-unsupported")
+                    return fingerprint(root, env)
+
+                def build(command, *, cwd, env):
+                    with builds.get_lock():
+                        builds.value += 1
+                        number = builds.value
+                    if number > 1 and not release.is_set():
+                        overlapping_build.set()
+                    entered.set()
+                    if not release.wait(10):
+                        raise AssertionError("compiler was not released")
+                    binary(self.output)
+                    return subprocess.CompletedProcess(command, 0)
+
+                def worker(second):
+                    env = dict(self.env)
+                    if second:
+                        second_started.set()
+                        if fallback:
+                            env["UNSUPPORTED"] = "1"
+                    if cache.compile_graph(self.root, env) != 0:
+                        raise AssertionError("compiler failed")
+
+                processes = [context.Process(target=worker, args=(second,)) for second in (False, True)]
+                try:
+                    with patch.object(cache, "fingerprint", side_effect=inspect), patch.object(cache.subprocess, "run", side_effect=build):
+                        processes[0].start()
+                        self.assertTrue(entered.wait(5))
+                        processes[1].start()
+                        self.assertTrue(second_started.wait(5))
+                        self.assertFalse(overlapping_build.wait(0.2))
+                        release.set()
+                        for process in processes:
+                            process.join(10)
+                            self.assertEqual(process.exitcode, 0)
+                    self.assertEqual(builds.value, 2 if fallback else 1)
+                    self.assertFalse(overlapping_build.is_set())
+                finally:
+                    release.set()
+                    for process in processes:
+                        if process.is_alive():
+                            process.terminate()
+                        if process.pid is not None:
+                            process.join(5)
+
+    def test_changed_inputs_and_cargo_replacement_preserve_old_payload_inode(self) -> None:
+        with self.compile():
+            self.assertEqual(cache.compile_graph(self.root, self.env), 0)
+        old_key = self.key()
+        old_binary = self.payload / "hash-graph"
+        old_content = old_binary.read_bytes()
+        retained = self.root / "retained-graph"
+        os.link(old_binary, retained)
+        self.write("apps/hash-graph/src/main.rs", b"changed input")
+        with self.compile(content=b"changed executable"):
+            self.assertEqual(cache.compile_graph(self.root, self.env), 0)
+        self.assertEqual(retained.read_bytes(), old_content)
+        self.assertNotEqual(old_key, self.key())
+        self.assertTrue(self.output.samefile(old_binary))
+        self.assertEqual(old_binary.read_bytes(), self.output.read_bytes())
+
+        # Cargo links its final output from deps, removing old paths before relinking.
+        dependency_output = self.root / "target/debug/deps/hash-graph-example"
+        dependency_output.parent.mkdir(parents=True, exist_ok=True)
+        os.link(self.output, dependency_output)
+        before = old_binary.read_bytes()
+        key = self.key()
+        with cache.build_lock(self.root):
+            dependency_output.unlink()
+            binary(dependency_output, b"normal Cargo replacement")
+            self.output.unlink()
+            os.link(dependency_output, self.output)
+        self.assertEqual(old_binary.read_bytes(), before)
+        self.assertIsNotNone(cache.verified_payload_digest(self.payload, key))
+
+    def test_mutation_through_shared_runtime_inode_rejects_reuse(self) -> None:
+        for mutation in (lambda: self.output.write_bytes(b"corrupt"), lambda: self.output.chmod(0o644)):
+            with self.compile():
+                self.assertEqual(cache.compile_graph(self.root, self.env), 0)
+            self.assertTrue(self.output.samefile(self.payload / "hash-graph"))
+            mutation()
+            self.assertIsNone(cache.verified_payload_digest(self.payload, self.key()))
+            with self.compile() as build:
+                self.assertEqual(cache.compile_graph(self.root, self.env), 0)
+                build.assert_called_once()
+
+    def test_copy_fallback_and_atomic_staging_cleanup(self) -> None:
+        with patch.object(cache.os, "link", side_effect=OSError(errno.EXDEV, "cross-device link")):
+            with self.compile():
+                self.assertEqual(cache.compile_graph(self.root, self.env), 0)
+            self.assertFalse(self.output.samefile(self.payload / "hash-graph"))
+            self.output.unlink()
+            with self.compile() as build:
+                self.assertEqual(cache.compile_graph(self.root, self.env), 0)
+                build.assert_not_called()
+            self.assertEqual(self.output.read_bytes(), (self.payload / "hash-graph").read_bytes())
+        before = self.output.read_bytes()
+        with patch.object(cache.os, "replace", side_effect=OSError("synthetic replacement failure")):
+            with self.assertRaises(OSError):
+                cache.link_or_copy_binary(self.payload / "hash-graph", self.output)
+        self.assertEqual(self.output.read_bytes(), before)
+        self.assertEqual(list((self.root / "target").rglob(".hash-graph-*")), [])
+        self.assertEqual(list((self.root / "target").rglob(".manifest-*")), [])
+
+    def test_tar_payload_restores_without_external_hardlink(self) -> None:
+        with self.compile():
+            self.assertEqual(cache.compile_graph(self.root, self.env), 0)
+        archive = self.root / "payload.tar"
+        key = self.key()
+        subprocess.run(["tar", "--posix", "-cf", str(archive), "-C", str(self.root),
+                        "target/graph-build-cache"], check=True)
+        with tarfile.open(archive) as contents:
+            self.assertTrue(contents.getmember("target/graph-build-cache/hash-graph").isfile())
+            self.assertNotIn("target/graph-build-cache.lock", contents.getnames())
+        self.output.unlink()
+        shutil.rmtree(self.payload)
+        subprocess.run(["tar", "-xf", str(archive), "-C", str(self.root)], check=True)
+        self.assertEqual((self.payload / "hash-graph").stat().st_nlink, 1)
+        self.assertIsNotNone(cache.verified_payload_digest(self.payload, key))
         with self.compile() as build:
             self.assertEqual(cache.compile_graph(self.root, self.env), 0)
             build.assert_not_called()
-        self.assertEqual(inode, self.output.stat().st_ino)
 
     def test_source_changes_include_transitive_non_rust_generated_and_deletions(self) -> None:
         before = self.key()
@@ -260,6 +407,15 @@ class GraphBuildCache(unittest.TestCase):
         package.write_text("invalid")
         self.assertEqual(cache.prepare(self.root, self.env), "")
         self.assertEqual(package.read_text(), "invalid")
+
+    def test_prepare_lock_failure_restores_original_command_and_disables_reuse(self) -> None:
+        package = self.root / "apps/hash-graph/package.json"
+        self.assertTrue(cache.prepare(self.root, self.env))
+        self.assertEqual(json.loads(package.read_text())["scripts"]["compile"], cache.WRAPPER)
+        with patch.object(cache, "build_lock", side_effect=OSError("synthetic unsupported lock")), patch.object(cache, "fingerprint") as inspect:
+            self.assertEqual(cache.prepare(self.root, self.env), "")
+            inspect.assert_not_called()
+        self.assertEqual(json.loads(package.read_text())["scripts"]["compile"], " ".join(cache.COMMAND))
 
     def test_manifest_contains_only_digests_and_no_environment_values(self) -> None:
         self.isolated["CARGO_REGISTRIES_EXAMPLE_TOKEN"] = "synthetic-sensitive-value"
