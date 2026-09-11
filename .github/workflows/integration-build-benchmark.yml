@@ -19,7 +19,7 @@ env:
   NEXTEST_PROFILE: ci
   BENCHMARK_BASELINE_SHA: '67f60d5446ed3224609161f938e1b36bc9d62f89'
   BENCHMARK_SOURCE_SHA: '12556720a1c8a455ac8922899579f95bd5807459'
-  BENCHMARK_VARIANT: 'candidate'
+  BENCHMARK_VARIANT: 'baseline'
   BENCHMARK_SAMPLE: 'smoke'
   BENCHMARK_SCOPE: 'integration-only'
   BENCHMARK_WORKFLOW_SHA: ${{ github.workflow_sha }}
@@ -32,7 +32,7 @@ jobs:
   integration-tests:
     name: Integration
     env:
-      HASH_GRAPH_BUILD_CACHE: "1"
+      HASH_GRAPH_BUILD_CACHE: "baseline"
     strategy:
       matrix:
         include:
