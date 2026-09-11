@@ -23,6 +23,16 @@ Each file is an array of version-1, Turbo-2.10.12 summaries containing id,
 execution (command, startTime, endTime, exitCode), and tasks (taskId, execution,
 turbo_cache_status, task_cache_enabled). Only current MISS task envelopes count;
 unusable supplemental evidence retains its reason without replacing API times.
+Optional graph_cache_receipts maps exact graph-consuming job names to JSON
+receipts with GRAPH_PREPARED_KEY and GRAPH_CACHE_HIT. Successful preparation and
+restore steps are required. Every non-skipped Prepare graph build is included,
+even if its receipt is missing. Candidate cache labels alone never prove a hit.
+An optional helper_restore_accepted boolean requires independently collected,
+current matching-key helper restoration before any build, not a later local hit.
+Only an Actions hit plus that acceptance qualifies as warm; Actions-only hits,
+misses, mixed workflows and unknown evidence remain separate. Baseline cache
+state is not-applicable. Comparisons match the supplied planned condition and
+stratify candidates by observed state; missing cache proof preserves API times.
 """
 
 from __future__ import annotations
@@ -32,6 +42,7 @@ from collections import defaultdict
 from datetime import datetime
 import json
 from pathlib import Path
+import re
 from statistics import median
 
 
@@ -133,6 +144,67 @@ def measure_tasks(summaries, job):
     return metrics
 
 
+def graph_cache_states(entry, jobs, directory):
+    """Require both an Actions hit and separately collected helper acceptance."""
+    if entry["variant"] != "candidate":
+        return "not-applicable", {}, []
+    files = entry.get("graph_cache_receipts", {})
+    issues = []
+    if not isinstance(files, dict):
+        files = {}
+        issues.append("graph_cache_receipts must map exact job names to receipt paths")
+    names = {job["name"] for job in jobs}
+    if files.keys() - names:
+        issues.append("graph_cache_receipts contains unknown job names")
+    states = {}
+    for job in jobs:
+        preparation = [step for step in job.get("steps", [])
+                       if step["name"] == "Prepare graph build"
+                       and step.get("conclusion") != "skipped"]
+        if not preparation and job["name"] not in files:
+            continue
+        states[job["name"]] = "unknown"
+        try:
+            restore = [step for step in job.get("steps", [])
+                       if step["name"] == "Restore graph build"]
+            if (len(preparation) != 1 or preparation[0].get("conclusion") != "success"
+                    or len(restore) != 1 or restore[0].get("conclusion") != "success"):
+                raise ValueError("preparation and restore must both have succeeded")
+            path = files[job["name"]]
+            if list(files.values()).count(path) != 1:
+                raise ValueError("receipt path is shared by multiple jobs")
+            receipt = json.loads((directory / path).read_text())
+            if not re.fullmatch(r"graph-build-v[0-9]+-[0-9a-f]{64}", receipt["GRAPH_PREPARED_KEY"]):
+                raise ValueError("missing or invalid prepared key")
+            hit = receipt["GRAPH_CACHE_HIT"]
+            if hit not in ("true", "false", ""):
+                raise ValueError("unknown Actions cache-hit value")
+            accepted = receipt.get("helper_restore_accepted")
+            if accepted is not None and type(accepted) is not bool:
+                raise ValueError("helper_restore_accepted must be a boolean")
+            if accepted is True and hit != "true":
+                raise ValueError("helper acceptance contradicts Actions cache miss")
+            if hit != "true":
+                states[job["name"]] = "actions-cache-miss"
+            elif accepted is True:
+                states[job["name"]] = "accepted-cache-hit"
+            else:
+                states[job["name"]] = "restore-rejected" if accepted is False else "actions-cache-hit"
+        except (KeyError, TypeError, ValueError, OSError) as error:
+            issues.append(f"job {job['name']}: invalid graph cache evidence: {error}")
+    observed = set(states.values())
+    if not observed or "unknown" in observed or issues:
+        state = "unknown"
+    else:
+        if len(observed) == 1:
+            state = next(iter(observed))
+        elif "restore-rejected" in observed:
+            state = "mixed-restore-rejected"
+        else:
+            state = "mixed-unverified" if "actions-cache-hit" in observed else "mixed"
+    return state, states, issues
+
+
 def measure(entry, directory, phase_steps):
     run = json.loads((directory / entry["run"]).read_text())
     jobs = load_jobs(json.loads((directory / entry["jobs"]).read_text()))
@@ -140,7 +212,7 @@ def measure(entry, directory, phase_steps):
         key: entry[key]
         for key in (
             "variant", "cache_condition", "source_sha", "workflow_sha",
-            "cache_evidence", "test_results", "runner_details", "task_timings",
+            "cache_evidence", "test_results", "runner_details", "task_timings", "graph_cache_receipts",
         )
         if key in entry
     }
@@ -161,6 +233,8 @@ def measure(entry, directory, phase_steps):
     task_files = entry.get("task_timings", {})
     if not isinstance(task_files, dict) or task_files.keys() - set(names):
         raise ValueError("task_timings must map exact job names to summary paths")
+    state, cache_states, issues = graph_cache_states(entry, jobs, directory)
+    result.update(graph_cache_state=state, graph_cache_job_states=cache_states, graph_cache_issues=issues)
     started_jobs = []
     for job in jobs:
         if job["run_id"] != run["id"] or job["run_attempt"] != run["run_attempt"]:
@@ -171,6 +245,7 @@ def measure(entry, directory, phase_steps):
             "created_at", "started_at", "completed_at",
         )}
         record["steps"] = job.get("steps", [])
+        record["graph_cache_state"] = cache_states.get(job["name"], "not-applicable")
         record["missing_phases"] = []
         result["jobs"].append(record)
         if job["conclusion"] == "skipped":
@@ -232,26 +307,42 @@ def summarize(runs):
     for run in runs:
         if not run["exclusions"] and run["variant"] in ("baseline", "candidate"):
             for metric, seconds in run["metrics_seconds"].items():
+                state = "not-applicable"
+                if run["variant"] == "candidate":
+                    state = run.get("graph_cache_state", "unknown")
+                    for name, job_state in run.get("graph_cache_job_states", {}).items():
+                        if metric.startswith(name + " / "):
+                            state = job_state
+                            break
                 groups[(run.get("scope", "unspecified"), run["cache_condition"], metric,
-                        run["variant"])].append((seconds, run["url"]))
+                        run["variant"], state)].append((seconds, run["url"]))
     summaries = []
     for scope, condition, metric in sorted({key[:3] for key in groups}):
-        row = {"scope": scope, "cache_condition": condition, "metric": metric}
-        for variant in ("baseline", "candidate"):
-            samples = groups.get((scope, condition, metric, variant), [])
-            values = [sample[0] for sample in samples]
-            row[variant] = {
-                "samples": len(values), "median_seconds": median(values) if values else None,
-                "range_seconds": [min(values), max(values)] if values else None,
-                "run_links": [sample[1] for sample in samples],
-            }
-        enough = all(row[variant]["samples"] >= 3 for variant in ("baseline", "candidate"))
-        row["comparison_status"] = "descriptive comparison" if enough else "insufficient successful samples"
-        before = row["baseline"]["median_seconds"]
-        after = row["candidate"]["median_seconds"]
-        row["seconds_saved"] = before - after if enough else None
-        row["percent_saved"] = 100 * (before - after) / before if enough and before else None
-        summaries.append(row)
+        states = {key[4] for key in groups if key[:4] == (scope, condition, metric, "candidate")} or {"unknown"}
+        for state in sorted(states):
+            observed = {"accepted-cache-hit": "warm", "actions-cache-hit": "actions-hit-unverified",
+                        "actions-cache-miss": "cold" if condition == "cold" else "primed-miss"}.get(state, state)
+            row = {"scope": scope, "planned_cache_condition": condition, "cache_condition": observed,
+                   "candidate_graph_cache_state": state, "metric": metric}
+            for variant in ("baseline", "candidate"):
+                sample_state = "not-applicable" if variant == "baseline" else state
+                samples = groups.get((scope, condition, metric, variant, sample_state), [])
+                values = [sample[0] for sample in samples]
+                row[variant] = {
+                    "graph_cache_state": sample_state,
+                    "samples": len(values), "median_seconds": median(values) if values else None,
+                    "range_seconds": [min(values), max(values)] if values else None,
+                    "run_links": [sample[1] for sample in samples],
+                }
+            enough = all(row[variant]["samples"] >= 3 for variant in ("baseline", "candidate"))
+            verified = state in {"accepted-cache-hit", "actions-cache-miss", "mixed"}
+            row["comparison_status"] = ("unverified graph cache evidence" if not verified else
+                                        "descriptive comparison" if enough else "insufficient successful samples")
+            before = row["baseline"]["median_seconds"]
+            after = row["candidate"]["median_seconds"]
+            row["seconds_saved"] = before - after if enough and verified else None
+            row["percent_saved"] = 100 * (before - after) / before if enough and verified and before else None
+            summaries.append(row)
     return summaries
 
 
@@ -283,6 +374,8 @@ def report(manifest, directory):
             "Optional Turbo task times are current MISS execution envelopes, including task bookkeeping; they exclude prerequisites. Invalid task evidence is listed per job and omitted from task metrics; API envelopes remain available.",
             "Failed, incomplete, duplicate and explicitly excluded attempts remain listed but do not contribute to summaries.",
             "Savings require at least three successful samples per variant. Labels alone do not establish equivalent sources, runners, caches or test execution.",
+            "Run cache_condition is the planned condition. Comparison cache_condition is observed for the candidate; baseline graph caching is not applicable. Warm requires Actions hit plus current helper acceptance in every affected job for workflow metrics, or in the specific job for its metrics.",
+            "Actions-only hits, unknown receipts and rejected restores retain descriptive measurements but cannot produce savings. Mixed accepted-hit/miss workflows remain a separate comparison; their accepted-hit jobs can contribute to per-job warm comparisons.",
             "Scope separates complete Test workflows from integration-only subsets; subset timings do not establish complete workflow savings.",
         ],
         "runs": runs,

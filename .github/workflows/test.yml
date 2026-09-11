@@ -28,6 +28,12 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Check graph build reuse
         run: python3 .github/actions/graph-build-cache/graph_build_cache_test.py
+      - name: Check CPU cache-line decoding
+        run: |
+          CHECK_DIR=$(mktemp -d)
+          trap 'rm -rf "$CHECK_DIR"' EXIT
+          rustc +stable --edition=2021 --test .github/actions/graph-build-cache/cache_line_probe.rs -o "$CHECK_DIR/check"
+          "$CHECK_DIR/check"
       - name: Check timing comparison
         run: python3 .github/scripts/integration_build_timings_test.py
 
@@ -354,6 +360,8 @@ jobs:
               valid = verified_payload_digest(Path("target/graph-build-cache"), os.environ["EXPECTED_GRAPH_BUILD_KEY"]) is not None
           with open(os.environ["GITHUB_OUTPUT"], "a") as stream:
               stream.write(f"valid={str(valid).lower()}\n")
+          if not valid:
+              print("Graph cache upload skipped: payload is missing, invalid, or bound to different inputs")
           PYTHON
 
       - name: Save graph build

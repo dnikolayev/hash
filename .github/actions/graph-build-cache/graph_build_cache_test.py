@@ -44,14 +44,27 @@ class GraphBuildCache(unittest.TestCase):
             self.write(name, b"input\n")
         self.write(".cargo/config.toml", b"[target.'cfg(target_arch = \"x86_64\")']\nrustflags = [\"-Ctarget-cpu=x86-64-v3\"]\n")
         self.write("apps/hash-graph/package.json", json.dumps({"scripts": {"compile": " ".join(cache.COMMAND)}}).encode())
-        self.metadata = {"target_directory": str(self.root / "target"), "resolve": {"nodes": ["locked-dependency"]},
-                         "packages": [{"source": None, "manifest_path": str(self.root / name)}
-                                      for name in ("apps/hash-graph/Cargo.toml", "libs/dependency/Cargo.toml")]}
+        self.metadata = {"target_directory": str(self.root / "target"), "workspace_root": str(self.root),
+                         "resolve": {"nodes": [{"id": "graph", "deps": [{"pkg": "dependency"}], "features": []},
+                                                {"id": "dependency", "deps": [], "features": []}]},
+                         "packages": [{"id": name, "name": name, "version": "0.1.0", "source": None, "manifest_path": str(self.root / directory / "Cargo.toml"),
+                                       "targets": [{"name": "hash-graph" if name == "graph" else name,
+                                                    "kind": ["bin" if name == "graph" else "lib"],
+                                                    "src_path": str(self.root / directory / "src" / source)}]}
+                                      for name, directory, source in (("graph", "apps/hash-graph", "main.rs"),
+                                                                      ("dependency", "libs/dependency", "lib.rs"))]}
+        for name, version in (("kiddo", "6.0.0"), ("yep-cache-line-size", "0.9.3"), ("raw-cpuid", "11.6.0")):
+            self.metadata["packages"].append({"id": name, "name": name, "version": version,
+                                              "source": "registry+https://github.com/rust-lang/crates.io-index",
+                                              "manifest_path": f"/registry/{name}/Cargo.toml", "targets": []})
+            self.metadata["resolve"]["nodes"].append({"id": name, "deps": [], "features": []})
+            self.metadata["resolve"]["nodes"][0]["deps"].append({"pkg": name})
         self.tracked = b"\0".join(name.encode() for name in self.files) + b"\0"
         self.stack = contextlib.ExitStack()
         self.addCleanup(self.stack.close)
         self.stack.enter_context(patch.object(cache.platform, "machine", return_value="x86_64"))
-        self.stack.enter_context(patch.object(cache, "compiler_environment", return_value=(self.isolated, "tools-v1")))
+        self.stack.enter_context(patch.object(cache, "compiler_environment", return_value=(self.isolated, "tools-v1", Path("/compiler/bin/rustc"))))
+        self.stack.enter_context(patch.object(cache, "native_cache_line", return_value=64))
         self.stack.enter_context(patch.object(cache, "machine_digest", side_effect=lambda root, env: cache.digest((str(root) + env.get("ImageVersion", "")).encode())))
         self.stack.enter_context(patch.object(cache.subprocess, "check_output", return_value=self.tracked))
         self.metadata_command = self.stack.enter_context(patch.object(cache, "run", side_effect=lambda *args: json.dumps(self.metadata).encode()))
@@ -288,7 +301,7 @@ class GraphBuildCache(unittest.TestCase):
     def test_source_changes_include_transitive_non_rust_generated_and_deletions(self) -> None:
         before = self.key()
         for name in self.files:
-            if name == ".cargo/config.toml":
+            if name in {".cargo/config.toml", "web/source.ts"}:
                 continue
             with self.subTest(name=name):
                 path = self.root / name
@@ -308,13 +321,13 @@ class GraphBuildCache(unittest.TestCase):
 
     def test_key_binds_resolution_environment_tools_platform_and_absolute_path(self) -> None:
         before = self.key()
-        self.metadata["resolve"] = {"nodes": ["new-dependency"]}
+        self.metadata["resolve"]["nodes"][1]["features"] = ["new-feature"]
         self.assertNotEqual(before, self.key())
-        self.metadata["resolve"] = {"nodes": ["locked-dependency"]}
+        self.metadata["resolve"]["nodes"][1]["features"] = []
         self.isolated["CARGO_INCREMENTAL"] = "0"
         self.assertNotEqual(before, self.key())
         del self.isolated["CARGO_INCREMENTAL"]
-        with patch.object(cache, "compiler_environment", return_value=(self.isolated, "tools-v2")):
+        with patch.object(cache, "compiler_environment", return_value=(self.isolated, "tools-v2", Path("/compiler/bin/rustc"))):
             self.assertNotEqual(before, self.key())
         self.env["ImageVersion"] = "new-image"
         self.assertNotEqual(before, self.key())
@@ -322,10 +335,58 @@ class GraphBuildCache(unittest.TestCase):
         self.assertEqual(before, self.key())
         with patch.object(cache, "machine_digest", return_value="another-root"):
             self.assertNotEqual(before, self.key())
+        with patch.object(cache, "native_cache_line", return_value=128):
+            self.assertNotEqual(before, self.key())
+
+    def test_unrelated_files_and_disconnected_packages_keep_the_key(self) -> None:
+        before = self.key()
+        for name in ("web/source.ts", "README.md", ".github/workflows/example.yml"):
+            self.write(name, b"unrelated change")
+        self.metadata["packages"].append({"id": "unrelated", "name": "unrelated", "source": None,
+                                          "manifest_path": str(self.root / "other/Cargo.toml"), "targets": []})
+        self.metadata["resolve"]["nodes"].append({"id": "unrelated", "deps": [], "features": ["unused"]})
+        self.metadata["workspace_members"] = ["graph", "dependency", "unrelated"]
+        self.write("other/src/lib.rs", b"unrelated source")
+        self.assertEqual(before, self.key())
+        self.metadata["resolve"]["nodes"][0]["deps"].append({"pkg": "unrelated", "name": "renamed", "dep_kinds": [{"kind": "dev", "target": "cfg(windows)"}]})
+        reached = self.key()
+        self.assertNotEqual(before, reached)
+        self.write("other/src/lib.rs", b"changed dependency")
+        self.assertNotEqual(reached, self.key())
+        before_helper_change = self.key()
+        self.write(".github/actions/graph-build-cache/cache_line_probe.rs", b"changed probe")
+        self.assertNotEqual(before_helper_change, self.key())
+
+    def test_resolution_rejects_missing_ambiguous_or_external_inputs(self) -> None:
+        original = json.dumps(self.metadata)
+        mutations = [
+            lambda data: data.update(resolve=None),
+            lambda data: data["packages"].append(data["packages"][0]),
+            lambda data: data["resolve"]["nodes"].append(data["resolve"]["nodes"][0]),
+            lambda data: data["resolve"]["nodes"].pop(),
+            lambda data: data["packages"][0].update(targets=[]),
+            lambda data: data["packages"][1]["targets"][0].update(src_path=str(self.root / "other.rs")),
+            lambda data: data["packages"][1].update(readme="../outside.md"),
+            lambda data: data["packages"][1]["targets"][0].update(src_path=str(self.root / "libs/dependency/target/generated.rs")),
+            lambda data: data["resolve"].update(root="dependency"),
+            lambda data: data["packages"][2].update(version="6.0.1"),
+            lambda data: data["packages"][2].update(source="git+https://example.invalid/source"),
+            lambda data: data["resolve"]["nodes"][0]["deps"].pop(),
+            lambda data: data.update(workspace_root="/outside"),
+        ]
+        for index, mutate in enumerate(mutations):
+            with self.subTest(case=index):
+                self.metadata = json.loads(original)
+                mutate(self.metadata)
+                with self.assertRaises(cache.NoReuse):
+                    self.key()
+        self.metadata = json.loads(original)
 
     def test_declared_wasm_output_does_not_drift_but_tracked_and_generated_inputs_do(self) -> None:
         manifest = self.write("libs/@blockprotocol/type-system/rust/Cargo.toml", b"input")
-        self.metadata["packages"].append({"source": None, "manifest_path": str(manifest)})
+        self.metadata["packages"].append({"id": "wasm", "name": "wasm", "source": None, "manifest_path": str(manifest), "targets": []})
+        self.metadata["resolve"]["nodes"][0]["deps"].append({"pkg": "wasm"})
+        self.metadata["resolve"]["nodes"].append({"id": "wasm", "deps": [], "features": []})
         before = self.key()
         output_name = "libs/@blockprotocol/type-system/rust/pkg/type-system_bg.wasm"
         output = self.write(output_name, b"wasm output")
@@ -471,8 +532,73 @@ class GraphBuildCache(unittest.TestCase):
         self.assertNotIn(str(self.root), json.dumps(inputs))
 
 
+class NativeCacheLine(unittest.TestCase):
+    def test_probe_inputs_failures_affinity_and_cleanup(self) -> None:
+        good = {"status": "ok", "bytes": 64}
+        cases = [([good, good], None), ([good, {"status": "ok", "bytes": 128}], "heterogeneous"),
+                 *[([{"status": "ok", "bytes": value}], "invalid") for value in (0, "64", True, -1, 131073)],
+                 *[([value], "invalid") for value in ([], {"status": "unsupported"}, b"not-json")],
+                 *[([good, good], failure) for failure in ("compile", "signal", "timeout", "pin")]]
+        for outputs, failure in cases:
+            with self.subTest(failure=failure, outputs=outputs):
+                directories, selected = [], []
+                child = None
+                values = iter(outputs)
+                env = {"PATH": "/compiler/bin:/usr/bin", "RUSTC": "/untrusted/compiler"}
+
+                def get_affinity(pid):
+                    return {2, 5} if child is None else child
+
+                def set_affinity(pid, cpus):
+                    nonlocal child
+                    self.assertIsNotNone(child, "parent affinity must not change")
+                    if failure == "pin":
+                        raise subprocess.SubprocessError("synthetic child failure")
+                    child = cpus
+                    selected.append(cpus)
+
+                def run(command, **kwargs):
+                    nonlocal child
+                    self.assertIs(kwargs["env"], env)
+                    self.assertTrue(kwargs["check"])
+                    if "-o" in command:
+                        self.assertEqual(command[0], "/compiler/bin/rustc")
+                        self.assertIn("--edition=2021", command)
+                        self.assertIn("-Ctarget-cpu=x86-64", command)
+                        probe = Path(command[-1])
+                        directories.append(probe.parent)
+                        if failure == "compile":
+                            raise subprocess.CalledProcessError(1, command)
+                        probe.write_bytes(b"synthetic probe")
+                    else:
+                        child = {2, 5}
+                        try:
+                            kwargs["preexec_fn"]()
+                        finally:
+                            child = None
+                        if failure == "signal":
+                            raise subprocess.CalledProcessError(-4, command)
+                        if failure == "timeout":
+                            raise subprocess.TimeoutExpired(command, 2)
+                        value = next(values)
+                        return subprocess.CompletedProcess(command, 0, value if isinstance(value, bytes) else json.dumps(value).encode())
+                    return subprocess.CompletedProcess(command, 0)
+
+                with patch.object(cache.os, "sched_getaffinity", get_affinity, create=True), \
+                     patch.object(cache.os, "sched_setaffinity", set_affinity, create=True), \
+                     patch.object(cache.subprocess, "run", run), \
+                     patch.object(cache.platform, "machine", return_value="x86_64"):
+                    if failure is None:
+                        self.assertEqual(cache.native_cache_line(Path("/workspace"), env, Path("/compiler/bin/rustc")), 64)
+                        self.assertEqual(selected, [{2}, {5}])
+                    else:
+                        with self.assertRaises((cache.NoReuse, ValueError, subprocess.SubprocessError)):
+                            cache.native_cache_line(Path("/workspace"), env, Path("/compiler/bin/rustc"))
+                self.assertTrue(all(not path.exists() for path in directories))
+
+
 class MachineIdentity(unittest.TestCase):
-    def test_model_labels_do_not_replace_capability_checks(self) -> None:
+    def test_x86_uses_probed_class_and_arm_retains_identity(self) -> None:
         with patch.object(cache.platform, "machine", return_value="x86_64") as architecture, \
              patch.object(cache.platform, "platform", return_value="Linux-synthetic"), \
              patch.object(cache, "file_digest", return_value="os-digest"), \
@@ -483,16 +609,17 @@ class MachineIdentity(unittest.TestCase):
             cpu.return_value = "model name: Model B\nflags: sse2 avx2\n"
             self.assertEqual(cache.machine_digest(root, env), first)
             cpu.return_value = "model name: Model B\nflags: sse2\n"
-            self.assertNotEqual(cache.machine_digest(root, env), first)
-            for value in ("model name: Model B\n", "flags: \t\n", "flags\n"):
-                cpu.return_value = value
-                with self.subTest(cpu=value), self.assertRaisesRegex(cache.NoReuse, "cpu-capabilities-unavailable"):
-                    cache.machine_digest(root, env)
+            self.assertEqual(cache.machine_digest(root, env), first)
+            cpu.assert_not_called()
             architecture.return_value = "aarch64"
             cpu.return_value = "Features: fp asimd\nCPU implementer: 0x41\nCPU part: 0xd00\n"
             first = cache.machine_digest(root, env)
             cpu.return_value = cpu.return_value.replace("0xd00", "0xd01")
             self.assertNotEqual(cache.machine_digest(root, env), first)
+            for value in ("", "Features: \t\n", "Features\n"):
+                cpu.return_value = value
+                with self.subTest(cpu=value), self.assertRaisesRegex(cache.NoReuse, "cpu-capabilities-unavailable"):
+                    cache.machine_digest(root, env)
 
 
 class CompilerEnvironment(unittest.TestCase):
@@ -521,7 +648,8 @@ class CompilerEnvironment(unittest.TestCase):
                 return str(root / "installed").encode() if "sysroot" in args else b"synthetic version"
 
             with patch.object(cache.platform, "system", return_value="Linux"), patch.object(cache.platform, "machine", return_value="x86_64"), patch.object(cache, "run", side_effect=query):
-                env, tools = cache.compiler_environment(root, original)
+                env, tools, rustc = cache.compiler_environment(root, original)
+                self.assertEqual(rustc, installed / "rustc")
                 self.assertIs(calls[0][1], original)
                 self.assertTrue(all(call_env is env for _, call_env in calls[1:]))
                 self.assertEqual([args for args, _ in calls],
@@ -534,7 +662,7 @@ class CompilerEnvironment(unittest.TestCase):
                 self.assertNotIn("synthetic-sensitive-value", tools)
                 (installed / "cc").write_bytes(b"changed tool")
                 self.assertNotEqual(tools, cache.compiler_environment(root, original)[1])
-                _, before_wrapper_change = cache.compiler_environment(root, original)
+                _, before_wrapper_change, _ = cache.compiler_environment(root, original)
                 (installed / "custom-wrapper").write_bytes(b"changed wrapper")
                 self.assertNotEqual(before_wrapper_change, cache.compiler_environment(root, original)[1])
                 self.assertTrue(all(args[0] in {"rustc", "cargo"} for args, _ in calls))

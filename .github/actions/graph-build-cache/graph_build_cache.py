@@ -82,7 +82,7 @@ def file_digest(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def compiler_environment(root: Path, original: dict[str, str]) -> tuple[dict[str, str], str]:
+def compiler_environment(root: Path, original: dict[str, str]) -> tuple[dict[str, str], str, Path]:
     if platform.system() != "Linux" or platform.machine() not in {"x86_64", "aarch64"}:
         raise NoReuse("unsupported-platform")
     if any(original.get(name) for name in (
@@ -138,7 +138,7 @@ def compiler_environment(root: Path, original: dict[str, str]) -> tuple[dict[str
         if not path.is_file():
             raise NoReuse("tool-file-missing")
         identities.append([name, str(path), file_digest(path), versions.get(name)])
-    return env, digest(encoded(identities))
+    return env, digest(encoded(identities)), sysroot / "bin/rustc"
 
 
 def cargo_configs(root: Path, env: dict[str, str]) -> list[Path]:
@@ -162,7 +162,11 @@ def cargo_configs(root: Path, env: dict[str, str]) -> list[Path]:
 
 def source_digest(root: Path, packages: list[str], configs: list[Path]) -> str:
     tracked = subprocess.check_output(["git", "ls-files", "--cached", "-z"], cwd=root)
-    paths = {root / os.fsdecode(name) for name in tracked.split(b"\0") if name}
+    directories = [Path(manifest).parent for manifest in packages]
+    directories.append(root / ".github/actions/graph-build-cache")
+    fixed = {root / name for name in ("Cargo.toml", "Cargo.lock", "rust-toolchain", "rust-toolchain.toml")}
+    paths = fixed | {root / os.fsdecode(name) for name in tracked.split(b"\0") if name
+                     and any((root / os.fsdecode(name)).is_relative_to(directory) for directory in directories)}
     def add_directory(directory: Path) -> None:
         for parent, dirs, files in os.walk(directory, followlinks=False):
             dirs[:] = sorted(name for name in dirs if name not in OUTPUT_DIRS
@@ -172,8 +176,7 @@ def source_digest(root: Path, packages: list[str], configs: list[Path]) -> str:
 
     # Retain absent tracked paths in the digest: pruning and deletion both matter.
     # Cargo can also read generated or ignored files inside local package directories.
-    for manifest in packages:
-        directory = Path(manifest).parent
+    for directory in directories:
         if not directory.is_relative_to(root):
             raise NoReuse("external-source-package")
         add_directory(directory)
@@ -203,34 +206,128 @@ def source_digest(root: Path, packages: list[str], configs: list[Path]) -> str:
     return hasher.hexdigest()
 
 
+def graph_resolution(root: Path, metadata: dict) -> dict:
+    """Keep every dependency kind and target condition reachable from the graph."""
+    packages = {package["id"]: package for package in metadata["packages"]}
+    resolve = metadata.get("resolve")
+    if not isinstance(resolve, dict):
+        raise NoReuse("missing-cargo-resolution")
+    nodes = {node["id"]: node for node in resolve["nodes"]}
+    if len(packages) != len(metadata["packages"]) or len(nodes) != len(resolve["nodes"]):
+        raise NoReuse("duplicate-cargo-resolution-id")
+    roots = [package for package in packages.values()
+             if Path(package["manifest_path"]).resolve() == root / "apps/hash-graph/Cargo.toml"]
+    if len(roots) != 1 or not any(target["name"] == "hash-graph" and "bin" in target["kind"]
+                                  for target in roots[0]["targets"]):
+        raise NoReuse("ambiguous-graph-package")
+    if resolve.get("root") not in (None, roots[0]["id"]):
+        raise NoReuse("unexpected-cargo-resolution-root")
+    reached, pending = set(), [roots[0]["id"]]
+    while pending:
+        package_id = pending.pop()
+        if package_id in reached:
+            continue
+        if package_id not in packages or package_id not in nodes:
+            raise NoReuse("incomplete-cargo-resolution")
+        reached.add(package_id)
+        pending.extend(dependency["pkg"] for dependency in nodes[package_id]["deps"])
+    directories = [Path(packages[package_id]["manifest_path"]).parent for package_id in reached
+                   if packages[package_id]["source"] is None]
+    for package_id in reached:
+        package = packages[package_id]
+        if package["source"] is None:
+            directory = Path(package["manifest_path"]).parent
+            if not directory.resolve().is_relative_to(root):
+                raise NoReuse("external-source-package")
+            for path in [target["src_path"] for target in package["targets"]] + [
+                package[name] for name in ("readme", "license_file") if package.get(name)
+            ]:
+                candidate = Path(os.path.normpath(directory / path))
+                if not any(candidate.is_relative_to(modeled) for modeled in directories):
+                    raise NoReuse("external-package-input")
+                if OUTPUT_DIRS.intersection(candidate.relative_to(root).parts) or candidate.is_relative_to(root / WASM_OUTPUT):
+                    raise NoReuse("excluded-package-input")
+    return {"root": roots[0]["id"],
+            "packages": [packages[package_id] for package_id in sorted(reached)],
+            "nodes": [nodes[package_id] for package_id in sorted(reached)]}
+
+
 def machine_digest(root: Path, original: dict[str, str]) -> str:
     machine = {"platform": platform.platform(), "machine": platform.machine(),
                "image": original.get("ImageVersion", ""), "root": str(root),
                "os": file_digest(Path("/etc/os-release"))}
-    # x86 identities retain exact capabilities without the CPU model label.
-    fields = {"flags"} if machine["machine"] == "x86_64" else {
-        "model name", "flags", "Features", "CPU implementer", "CPU part"}
-    cpu = sorted({line for line in Path("/proc/cpuinfo").read_text().splitlines()
-                  if line.split(":", 1)[0].strip() in fields})
-    if not cpu or any(not line.partition(":")[2].strip() for line in cpu):
-        raise NoReuse("cpu-capabilities-unavailable")
-    machine["cpu"] = digest("\n".join(cpu).encode())
+    if machine["machine"] == "x86_64":
+        # The native probe requires usable v3 features on every permitted CPU.
+        machine["cpu"] = "x86-64-v3"
+    else:
+        fields = {"model name", "flags", "Features", "CPU implementer", "CPU part"}
+        cpu = sorted({line for line in Path("/proc/cpuinfo").read_text().splitlines()
+                      if line.split(":", 1)[0].strip() in fields})
+        if not cpu or any(not line.partition(":")[2].strip() for line in cpu):
+            raise NoReuse("cpu-capabilities-unavailable")
+        machine["cpu"] = digest("\n".join(cpu).encode())
     return digest(encoded(machine))
 
 
+def native_cache_line(root: Path, env: dict[str, str], rustc: Path) -> int:
+    # kiddo selects compiled code using native L1 Data cache-line detection.
+    # Probe every permitted CPU without changing the compiler's affinity.
+    started = time.monotonic()
+    if not all(hasattr(os, name) for name in ("sched_getaffinity", "sched_setaffinity")):
+        raise NoReuse("cpu-affinity-unavailable")
+    cpus = os.sched_getaffinity(0)
+    if not cpus:
+        raise NoReuse("cpu-affinity-unavailable")
+    source = root / ".github/actions/graph-build-cache/cache_line_probe.rs"
+    # Detection macros must run at baseline ISA, not fold to compile-time v3.
+    target = ["-Ctarget-cpu=x86-64"] if platform.machine() == "x86_64" else []
+    with tempfile.TemporaryDirectory(prefix="graph-cache-cpu-") as directory:
+        probe = Path(directory) / "probe"
+        subprocess.run([str(rustc), "--edition=2021", *target, str(source), "-o", str(probe)], env=env, check=True,
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+        values = []
+        for cpu in sorted(cpus):
+            def pin_child():
+                os.sched_setaffinity(0, {cpu})
+                if os.sched_getaffinity(0) != {cpu}:
+                    raise NoReuse("cpu-affinity-unavailable")
+            # This helper is single-threaded; affinity changes only in the child.
+            result = subprocess.run([str(probe)], env=env, check=True, preexec_fn=pin_child,
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=2)
+            value = json.loads(result.stdout)
+            if (not isinstance(value, dict) or set(value) != {"status", "bytes"}
+                    or value["status"] != "ok" or type(value["bytes"]) is not int
+                    or not 0 < value["bytes"] <= 131_072):
+                raise NoReuse("cpu-cache-line-unavailable")
+            values.append(value["bytes"])
+        if len(set(values)) != 1 or os.sched_getaffinity(0) != cpus:
+            raise NoReuse("cpu-cache-line-inconsistent")
+    event("cpu-probe", "ready", started)
+    return values[0]
+
+
 def fingerprint(root: Path, original: dict[str, str]) -> tuple[str, dict[str, str], dict]:
-    env, tools = compiler_environment(root, original)
+    env, tools, rustc = compiler_environment(root, original)
     configs = cargo_configs(root, env)
     # Resolve the pruned workspace before hashing: Cargo may update its copied lockfile.
     metadata = json.loads(run(["cargo", "metadata", "--format-version=1", "--all-features"],
                               root, env))
-    if Path(metadata["target_directory"]).resolve() != root / "target":
+    if (Path(metadata["target_directory"]).resolve() != root / "target"
+            or Path(metadata["workspace_root"]).resolve() != root):
         raise NoReuse("custom-metadata-target")
-    packages = sorted(package["manifest_path"] for package in metadata["packages"]
+    resolution = graph_resolution(root, metadata)
+    detector_versions = {"kiddo": "6.0.0", "yep-cache-line-size": "0.9.3", "raw-cpuid": "11.6.0"}
+    detector_sources = {(package["name"], package["version"], package["source"])
+                        for package in resolution["packages"] if package["name"] in detector_versions}
+    if detector_sources != {(name, version, "registry+https://github.com/rust-lang/crates.io-index")
+                            for name, version in detector_versions.items()}:
+        raise NoReuse("unmodeled-cache-line-detector")
+    packages = sorted(package["manifest_path"] for package in resolution["packages"]
                       if package["source"] is None)
     inputs = {"schema": 1, "command": COMMAND, "sources": source_digest(root, packages, configs),
-              "resolution": digest(encoded(metadata)), "environment": digest(encoded(env)),
-              "tools": tools, "machine": machine_digest(root, original)}
+              "resolution": digest(encoded(resolution)), "environment": digest(encoded(env)),
+              "tools": tools, "machine": machine_digest(root, original),
+              "cpu_cache_line": native_cache_line(root, env, rustc)}
     key = "graph-build-v1-" + digest(encoded(inputs))
     return key, env, inputs
 

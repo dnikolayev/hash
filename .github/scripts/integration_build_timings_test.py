@@ -152,6 +152,7 @@ class TimingEvidenceTests(unittest.TestCase):
         runs = []
         for variant, values in (("baseline", [120, 100, 110]), ("candidate", [80, 100, 90])):
             runs.extend({"variant": variant, "cache_condition": "warm", "exclusions": [],
+                         "graph_cache_state": "accepted-cache-hit" if variant == "candidate" else "not-applicable",
                          "metrics_seconds": {"workflow / wall": value}, "url": str(index)}
                         for index, value in enumerate(values))
         runs.append({**runs[0], "exclusions": ["cancelled"],
@@ -167,6 +168,65 @@ class TimingEvidenceTests(unittest.TestCase):
         separate = TIMINGS.summarize(runs)
         self.assertEqual(len(separate), 2)
         self.assertTrue(all(row["seconds_saved"] is None for row in separate))
+
+    def test_cache_receipts_require_complete_coverage_and_helper_acceptance(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            jobs = [job(1, "Browser", 100), job(2, "Backend", 90)]
+            for row in jobs:
+                row["steps"] += [{"name": name, "conclusion": "success"}
+                                 for name in ("Prepare graph build", "Restore graph build")]
+            entry = {"variant": "candidate", "cache_condition": "warm",
+                     "graph_cache_receipts": {"Browser": "browser.json", "Backend": "backend.json"}}
+            hit = {"GRAPH_PREPARED_KEY": "graph-build-v1-" + "a" * 64,
+                   "GRAPH_CACHE_HIT": "true", "helper_restore_accepted": True}
+            (directory / "browser.json").write_text(json.dumps(hit))
+            (directory / "backend.json").write_text(json.dumps(hit))
+            state, states, issues = TIMINGS.graph_cache_states(entry, jobs, directory)
+            self.assertEqual((state, set(states.values()), issues), ("accepted-cache-hit", {"accepted-cache-hit"}, []))
+            cases = [
+                ({"GRAPH_PREPARED_KEY": hit["GRAPH_PREPARED_KEY"], "GRAPH_CACHE_HIT": "true"}, "mixed-unverified", "actions-cache-hit"),
+                ({**hit, "helper_restore_accepted": False}, "mixed-restore-rejected", "restore-rejected"),
+                ({"GRAPH_PREPARED_KEY": hit["GRAPH_PREPARED_KEY"], "GRAPH_CACHE_HIT": ""}, "mixed", "actions-cache-miss"),
+                ({**hit, "GRAPH_CACHE_HIT": ""}, "unknown", "unknown"),
+                ({**hit, "GRAPH_PREPARED_KEY": ""}, "unknown", "unknown"),
+                ({**hit, "GRAPH_CACHE_HIT": True}, "unknown", "unknown"),
+            ]
+            for receipt, expected, job_state in cases:
+                with self.subTest(receipt=receipt):
+                    (directory / "backend.json").write_text(json.dumps(receipt))
+                    state, states, issues = TIMINGS.graph_cache_states(entry, jobs, directory)
+                    self.assertEqual((state, states["Backend"]), (expected, job_state))
+                    self.assertEqual(bool(issues), expected == "unknown")
+            del entry["graph_cache_receipts"]["Backend"]
+            state, states, issues = TIMINGS.graph_cache_states(entry, jobs, directory)
+            self.assertEqual((state, states["Browser"], states["Backend"]), ("unknown", "accepted-cache-hit", "unknown"))
+            self.assertTrue(issues)
+            self.assertEqual(TIMINGS.graph_cache_states({"variant": "baseline"}, jobs, directory), ("not-applicable", {}, []))
+            self.assertEqual(TIMINGS.graph_cache_states({"variant": "candidate"}, jobs, directory)[0], "unknown")
+
+    def test_mixed_workflows_preserve_warm_job_samples_and_baseline_trial_labels(self):
+        runs = []
+        for variant, values in (("baseline", [100, 110, 120]), ("candidate", [80, 90, 100])):
+            for value in values:
+                runs.append({"variant": variant, "cache_condition": "warm", "scope": "complete-test",
+                             "exclusions": [], "url": str(value), "graph_cache_state": "mixed",
+                             "graph_cache_job_states": {"Browser": "accepted-cache-hit", "Backend": "actions-cache-miss"},
+                             "metrics_seconds": {"workflow / wall": value, "Browser / wall": value, "Backend / wall": value}})
+        rows = {row["metric"]: row for row in TIMINGS.summarize(runs)}
+        self.assertEqual(rows["workflow / wall"]["cache_condition"], "mixed")
+        self.assertEqual(rows["Browser / wall"]["cache_condition"], "warm")
+        self.assertEqual(rows["Backend / wall"]["cache_condition"], "primed-miss")
+        for row in rows.values():
+            self.assertEqual(row["planned_cache_condition"], "warm")
+            self.assertEqual(row["baseline"]["graph_cache_state"], "not-applicable")
+            self.assertEqual(row["seconds_saved"], 20)
+        for run in runs:
+            if run["variant"] == "candidate":
+                run.pop("graph_cache_state")
+                run.pop("graph_cache_job_states")
+        self.assertTrue(all(row["cache_condition"] == "unknown" and row["seconds_saved"] is None
+                            for row in TIMINGS.summarize(runs)))
 
 
 if __name__ == "__main__":
