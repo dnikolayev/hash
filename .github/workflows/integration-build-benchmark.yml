@@ -1,6 +1,6 @@
 # Fork-only harness derived from .github/workflows/test.yml.
 # Smoke measures only two integrations; it does not measure complete Test CI.
-# All samples disable remote Turbo and sccache; both variants use the same source.
+# All samples disable remote Turbo and sccache; application inputs must match.
 name: Integration build benchmark (full)
 run-name: ${{ github.ref_name }} / attempt ${{ github.run_attempt }}
 
@@ -18,7 +18,7 @@ env:
   CARGO_INCREMENTAL: "0"
   NEXTEST_PROFILE: ci
   BENCHMARK_BASELINE_SHA: "67f60d5446ed3224609161f938e1b36bc9d62f89"
-  BENCHMARK_SOURCE_SHA: "f4dc7dd3faa93fd22120ba3ce48ece73592b5324"
+  BENCHMARK_SOURCE_SHA: "7f728cd4fc23c2467968a27e0d5a27c7bbb41930"
   BENCHMARK_VARIANT: "candidate"
   BENCHMARK_SAMPLE: "1"
   BENCHMARK_SCOPE: "complete-test"
@@ -38,7 +38,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: f4dc7dd3faa93fd22120ba3ce48ece73592b5324
+          ref: 7f728cd4fc23c2467968a27e0d5a27c7bbb41930
       - name: Check graph build reuse
         run: python3 .github/actions/graph-build-cache/graph_build_cache_test.py
       - name: Check timing comparison
@@ -57,7 +57,7 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: f4dc7dd3faa93fd22120ba3ce48ece73592b5324
+          ref: 7f728cd4fc23c2467968a27e0d5a27c7bbb41930
           fetch-depth: 2
 
       - name: Install tools
@@ -118,7 +118,7 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: f4dc7dd3faa93fd22120ba3ce48ece73592b5324
+          ref: 7f728cd4fc23c2467968a27e0d5a27c7bbb41930
 
       - name: Mint sccache credentials
         id: mint
@@ -148,7 +148,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: f4dc7dd3faa93fd22120ba3ce48ece73592b5324
+          ref: 7f728cd4fc23c2467968a27e0d5a27c7bbb41930
 
       - name: Clean up disk
         uses: $/.github/actions/clean-up-disk
@@ -259,7 +259,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: f4dc7dd3faa93fd22120ba3ce48ece73592b5324
+          ref: 7f728cd4fc23c2467968a27e0d5a27c7bbb41930
 
       - name: Clean up disk
         uses: $/.github/actions/clean-up-disk
@@ -408,7 +408,8 @@ jobs:
           python3 - <<'PYTHON'
           import os, pathlib, runpy
           helper = runpy.run_path('.github/actions/graph-build-cache/graph_build_cache.py')
-          valid = helper['verified_payload_digest'](pathlib.Path('target/graph-build-cache'), os.environ['EXPECTED_KEY']) is not None
+          with helper['build_lock'](pathlib.Path.cwd()):
+              valid = helper['verified_payload_digest'](pathlib.Path('target/graph-build-cache'), os.environ['EXPECTED_KEY']) is not None
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write(f'valid={str(valid).lower()}\n')
           print(f'Graph payload matches prepared key: {valid}')
@@ -521,7 +522,7 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: f4dc7dd3faa93fd22120ba3ce48ece73592b5324
+          ref: 7f728cd4fc23c2467968a27e0d5a27c7bbb41930
 
       - name: Clean up disk
         uses: $/.github/actions/clean-up-disk

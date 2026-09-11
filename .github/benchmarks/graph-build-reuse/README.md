@@ -1,10 +1,16 @@
 # Integration graph build benchmark
 
 This fork-only harness measures the complete change against the original Cargo
-compile command. Both variants check out the same candidate source and dependencies.
+compile command. Both variants use identical application source and dependencies.
 Baseline mode `0` leaves the application compile script and compiler environment
 unchanged. Candidate mode `1` prepares and reuses the executable, including its
 preparation, validation, transfer and storage overhead.
+
+Prefer the same source pin for both variants. An original-Cargo baseline from an
+earlier optimization revision can be retained only after verifying that every
+difference is confined to the optimization, its checks and documentation. Record
+both pins and the exact differences; application code, dependencies, toolchains,
+services, task configuration and test selection must still match.
 
 The diagnostic helper mode `baseline` uses an explicit compiler environment and
 fingerprinting without reuse. Earlier runs using that mode are diagnostic evidence,
@@ -49,7 +55,7 @@ mixed cache states per job and report the observed hit rate.
   and timing check job; the baseline does not pay that added cost.
 - `smoke` runs only Playwright and backend integration. It has no setup, unit or
   final-gate jobs and cannot establish complete Test workflow savings.
-- All checkouts pin the candidate SHA. The workflow triggers on benchmark pushes.
+- All checkouts pin the requested source SHA. The workflow triggers on benchmark pushes.
   Existing concurrency cancellation remains; never push another repetition while
   its preceding run is active.
 - Both variants disable remote Turbo and sccache. No upstream credentials are

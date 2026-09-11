@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Print a fork-only smoke or complete-Test benchmark workflow.
 
-Both modes check out the candidate commit. Baseline mode retains the original
-Cargo compile command; only the candidate prepares and reuses the build output.
-Application source and dependencies are therefore identical. Push each generated
-workflow to its own benchmark branch.
+Both modes check out the requested source commit. Baseline mode retains the
+original Cargo compile command; only the candidate prepares and reuses the build
+output. Compare identical application source and dependencies, disclosing any
+optimization-only revision differences. Push each generated workflow to its own
+benchmark branch.
 Repeat a successful cold run with an empty commit on that SAME branch for a
 fresh-runner warm measurement. Keep the workflow bytes and source SHA fixed.
 """
@@ -125,7 +126,8 @@ def generate(original, baseline_sha, candidate_sha, variant, campaign, sample, s
           python3 - <<'PYTHON'
           import os, pathlib, runpy
           helper = runpy.run_path('.github/actions/graph-build-cache/graph_build_cache.py')
-          valid = helper['verified_payload_digest'](pathlib.Path('target/graph-build-cache'), os.environ['EXPECTED_KEY']) is not None
+          with helper['build_lock'](pathlib.Path.cwd()):
+              valid = helper['verified_payload_digest'](pathlib.Path('target/graph-build-cache'), os.environ['EXPECTED_KEY']) is not None
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write(f'valid={{str(valid).lower()}}\\n')
           print(f'Graph payload matches prepared key: {{valid}}')
@@ -246,7 +248,7 @@ def generate(original, baseline_sha, candidate_sha, variant, campaign, sample, s
     jobs = pin_checkouts(jobs, candidate_sha)
     return f'''# Fork-only harness derived from .github/workflows/test.yml.
 # Smoke measures only two integrations; it does not measure complete Test CI.
-# All samples disable remote Turbo and sccache; both variants use the same source.
+# All samples disable remote Turbo and sccache; application inputs must match.
 name: Integration build benchmark ({scope})
 run-name: ${{{{ github.ref_name }}}} / attempt ${{{{ github.run_attempt }}}}
 
