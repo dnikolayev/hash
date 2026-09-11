@@ -1,14 +1,12 @@
-# Fork-only harness derived from .github/workflows/test.yml.
-# Smoke measures only two integrations; it does not measure complete Test CI.
-# All samples disable remote Turbo and sccache.
-# Compare identical application inputs; disclose optimization-only source differences.
-name: Integration build benchmark (full)
+# Fork-only backend source-invalidation validation; excluded from performance samples.
+# Reuses the backend cache from the completed cold/warm pair on this branch.
+name: Backend graph source validation
 run-name: ${{ github.ref_name }} / attempt ${{ github.run_attempt }}
 
 on:
   push:
     branches:
-      - "speedup/integration-build-benchmark-*"
+      - "speedup/integration-build-benchmark-v3-1-candidate"
 
 permissions:
   contents: read
@@ -22,7 +20,9 @@ env:
   BENCHMARK_SOURCE_SHA: "6c9b16b02a5393ae982cec33784e151c3aeed519"
   BENCHMARK_VARIANT: "candidate"
   BENCHMARK_SAMPLE: "1"
-  BENCHMARK_SCOPE: "complete-test"
+  BENCHMARK_SCOPE: "source-invalidation-correctness"
+  GRAPH_SOURCE_PROOF_PHASE: "prove"
+  GRAPH_SOURCE_PROOF_SCRIPT_SHA256: "d088aebe5b325ed6232af7241655e4245620c92be24a0377291ff96f8063b971"
   BENCHMARK_WORKFLOW_SHA: ${{ github.workflow_sha }}
 
 concurrency:
@@ -30,234 +30,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  graph-build-cache-check:
-    name: Graph build cache checks
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: 6c9b16b02a5393ae982cec33784e151c3aeed519
-      - name: Check graph build reuse
-        run: python3 .github/actions/graph-build-cache/graph_build_cache_test.py
-      - name: Check CPU cache-line decoding
-        run: |
-          CHECK_DIR=$(mktemp -d)
-          trap 'rm -rf "$CHECK_DIR"' EXIT
-          rustc +stable --edition=2021 --test .github/actions/graph-build-cache/cache_line_probe.rs -o "$CHECK_DIR/check"
-          "$CHECK_DIR/check"
-      - name: Check timing comparison
-        run: python3 .github/scripts/integration_build_timings_test.py
-
-  setup:
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-    outputs:
-      unit-tests: ${{ steps.packages.outputs.unit-tests }}
-      integration-tests: ${{ steps.packages.outputs.integration-tests }}
-      system-tests: ${{ steps.packages.outputs.system-tests }}
-      publish-rust: ${{ steps.packages.outputs.publish-rust }}
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: 6c9b16b02a5393ae982cec33784e151c3aeed519
-          fetch-depth: 2
-
-      - name: Install tools
-        uses: $/.github/actions/install-tools
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          rust: false
-
-      - name: Determine changed packages
-        id: packages
-        run: |
-          UNIT_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:unit)
-          INTEGRATION_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:integration)
-
-          PUBLISH_PACKAGES=[]
-          while IFS= read -r file; do
-            if [[ -n "$file" ]]; then
-              PACKAGE_NAME=$(yq '.package.name' -p toml -oy "$file")
-              if [[ "$PACKAGE_NAME" == "null" ]]; then
-                continue
-              fi
-
-              if [[ "$(yq '.package.publish' -p toml -oy "$file")" == "false" ]]; then
-                continue
-              fi
-
-              if [[ "$(yq '.package.publish.workspace' -p toml -oy "$file")" == "true" ]]; then
-                if [[ "$(yq '.workspace.package.publish' -p toml -oy "Cargo.toml")" == "false" ]]; then
-                  continue
-                fi
-              fi
-
-              OLD_VERSION=$(git show HEAD^:"$file" | yq '.package.version' -p toml)
-              if [[ "$OLD_VERSION" == "null" ]]; then
-                continue
-              fi
-              NEW_VERSION=$(yq '.package.version' -p toml -oy "$file")
-              if [[ "$OLD_VERSION" == "$NEW_VERSION" ]]; then
-                continue
-              fi
-
-              PUBLISH_PACKAGES=$(echo "$PUBLISH_PACKAGES" | jq -c --arg package "$PACKAGE_NAME" '. += [$package]')
-            fi
-          done <<< "$(find . -name 'Cargo.toml' -type f | sed 's|\./||')"
-
-          echo "unit-tests=$UNIT_TEST_PACKAGES" | tee -a "$GITHUB_OUTPUT"
-          echo "integration-tests=$INTEGRATION_TEST_PACKAGES" | tee -a "$GITHUB_OUTPUT"
-          echo "publish-rust=$PUBLISH_PACKAGES" | tee -a "$GITHUB_OUTPUT"
-
-  sccache-credentials:
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      id-token: write
-    outputs:
-      encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: 6c9b16b02a5393ae982cec33784e151c3aeed519
-
-      - name: Mint sccache credentials
-        id: mint
-        uses: $/.github/actions/mint-sccache-credentials
-        with:
-          vault_address: ""
-          cf_access_client_id: ""
-          cf_access_client_secret: ""
-          encryption_key: ""
-
-  unit-tests:
-    name: Unit
-    needs: [setup, sccache-credentials]
-    strategy:
-      matrix: ${{ fromJSON(needs.setup.outputs.unit-tests) }}
-      fail-fast: false
-    if: needs.setup.outputs.unit-tests != '{"name":[],"include":[]}'
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-    steps:
-      - name: Show selection reason
-        env:
-          MATRIX: ${{ toJSON(matrix) }}
-        run: echo "$MATRIX"
-
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: 6c9b16b02a5393ae982cec33784e151c3aeed519
-
-      - name: Clean up disk
-        uses: $/.github/actions/clean-up-disk
-
-      - name: Install tools
-        uses: $/.github/actions/install-tools
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          encrypted_sccache_credentials: ""
-          sccache_encryption_key: ""
-
-      - name: Prune repository
-        uses: $/.github/actions/prune-repository
-        with:
-          scope: |
-            ${{ matrix.name }}
-            @rust/hash-repo-chores
-
-      - name: Warm up repository
-        uses: $/.github/actions/warm-up-repo
-
-      - name: Find test steps to run
-        id: tests
-        run: |
-          HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
-
-          if [[ "$HAS_RUST" == "true" ]]; then
-            echo "COVERAGE_KEY=rust" >> "$GITHUB_ENV"
-          else
-            echo "COVERAGE_KEY=javascript" >> "$GITHUB_ENV"
-          fi
-
-      - name: Show disk usage
-        run: df -h
-
-      - name: Run tests
-        continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
-        env:
-          TEST_COVERAGE: ${{ github.event_name != 'merge_group' }}
-        run: |
-          turbo run test:unit --env-mode=loose --filter "${{ matrix.name }}"
-          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')" >> "$GITHUB_ENV"
-
-      - name: Show disk usage
-        run: df -h
-
-      - uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
-        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
-        with:
-          flags: ${{ env.TRIMMED_PACKAGE_NAME }}
-          token: "" ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
-
-      - name: Run miri
-        if: always() && steps.tests.outputs.has-rust == 'true'
-        run: |
-          turbo run test:miri --filter "${{ matrix.name }}"
-
-      - name: Show sccache logs
-        if: always() && steps.tests.outputs.has-rust == 'true'
-        run: |
-          grep "CannotCache" /tmp/sccache.log | while IFS= read -r line; do
-            # Extract reason - format as "reason1 (reason2)" if comma-separated, otherwise just "reason"
-            if echo "$line" | grep -qE 'CannotCache\([^,]+, [^)]+\):'; then
-              reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^,]+), ([^)]+)\):.*/\1 (\2)/')
-            else
-              reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^)]+)\):.*/\1/')
-            fi
-
-            # Extract crate name if present
-            if echo "$line" | grep -q '"--crate-name"'; then
-              crate=$(echo "$line" | sed -E 's/.*"--crate-name", "([^"]+)".*/\1/')
-            else
-              crate="<no crate name>"
-            fi
-
-            # Extract args
-            args=$(echo "$line" | sed -E 's/.*CannotCache\([^)]+\): (\[.+\])$/\1/')
-
-            echo ""
-            echo "reason: $reason"
-            echo "crate:  $crate"
-            echo "args:   $args"
-          done
-
-  integration-tests:
-    name: Integration
+  backend-source-validation:
+    name: Backend graph source validation
     env:
       HASH_GRAPH_BUILD_CACHE: "1"
-    needs: [setup, sccache-credentials]
     strategy:
-      matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
+      matrix:
+        include:
+          - name: "@tests/hash-backend-integration"
+            path: tests/hash-backend-integration
       fail-fast: false
-    # Only the top of a stack runs integration tests: it contains every layer below it.
-    if: >-
-      needs.setup.outputs.integration-tests != '{"name":[],"include":[]}'
-      && (github.event.pull_request.stack == null
-      || github.event.pull_request.stack.position == github.event.pull_request.stack.size)
     runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
+      - name: Validate source proof phase
+        run: |
+          [[ "$GRAPH_SOURCE_PROOF_PHASE" =~ ^(prime|prove)$ ]]
+          echo "Source validation phase: $GRAPH_SOURCE_PROOF_PHASE"
+
       - name: Show selection reason
         env:
           MATRIX: ${{ toJSON(matrix) }}
@@ -310,9 +101,6 @@ jobs:
               'image_version': os.environ.get('ImageVersion'),
               'platform': platform.platform(),
               'cpu_count': os.cpu_count(),
-              'cpu_lines': sorted({line for line in pathlib.Path('/proc/cpuinfo').read_text().splitlines()
-                                   if line.split(':', 1)[0].strip() in
-                                   {'model name', 'flags', 'Features', 'CPU implementer', 'CPU part'}}),
               'rustc': output(['rustc', '-vV']),
               'cargo': output(['cargo', '--version']),
               'node': output(['node', '--version']),
@@ -345,6 +133,35 @@ jobs:
           path: target/graph-build-cache
           key: graph-build-benchmark-20260911-v3-1-${{ matrix.name }}-${{ steps.graph-build.outputs.key }}
 
+      - name: Require restored graph output for source proof
+        if: env.GRAPH_SOURCE_PROOF_PHASE == 'prove'
+        env:
+          GRAPH_CACHE_HIT: ${{ steps.graph-cache.outputs.cache-hit }}
+        run: test "$GRAPH_CACHE_HIT" = true
+
+      - name: Load source validation script
+        id: graph-proof-script
+        if: env.GRAPH_SOURCE_PROOF_PHASE == 'prove'
+        run: |
+          trap 'if [ "$?" -ne 0 ]; then rm -f -- "$RUNNER_TEMP/graph_source_invalidation.py"; fi' EXIT
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_WORKFLOW_SHA}/.github/benchmarks/graph-build-reuse/graph_source_invalidation.py" \
+            --output "$RUNNER_TEMP/graph_source_invalidation.py"
+          python3 - <<'PYTHON'
+          import hashlib, os, pathlib
+          script = pathlib.Path(os.environ['RUNNER_TEMP']) / 'graph_source_invalidation.py'
+          if hashlib.sha256(script.read_bytes()).hexdigest() != os.environ['GRAPH_SOURCE_PROOF_SCRIPT_SHA256']:
+              raise SystemExit('source-proof-script-checksum-mismatch')
+          PYTHON
+
+      - name: Prove graph source invalidation and valid rebuilding
+        id: graph-source-proof
+        if: env.GRAPH_SOURCE_PROOF_PHASE == 'prove'
+        env:
+          PROOF_PREPARED_KEY: ${{ steps.graph-build.outputs.key }}
+          PROOF_ACTIONS_CACHE_HIT: ${{ steps.graph-cache.outputs.cache-hit }}
+        run: python3 "$RUNNER_TEMP/graph_source_invalidation.py" prepare
+
       - name: Find test steps to run
         id: tests
         run: |
@@ -356,15 +173,6 @@ jobs:
 
       - name: Create temp files and folders
         run: mkdir -p var/logs
-
-      - name: Install playwright
-        if: matrix.name == '@tests/hash-playwright'
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
-        with:
-          max_attempts: 3
-          timeout_minutes: 2
-          shell: bash
-          command: npx playwright install chromium
 
       - name: Show disk usage
         run: df -h
@@ -409,32 +217,8 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - name: Validate graph build for upload
-        id: graph-upload
-        if: env.HASH_GRAPH_BUILD_CACHE == '1' && steps.graph-build.outputs.key != '' && steps.graph-cache.outputs.cache-hit != 'true'
-        env:
-          EXPECTED_KEY: ${{ steps.graph-build.outputs.key }}
-        run: |
-          python3 - <<'PYTHON'
-          import os, pathlib, runpy
-          helper = runpy.run_path('.github/actions/graph-build-cache/graph_build_cache.py')
-          with helper['build_lock'](pathlib.Path.cwd()):
-              valid = helper['verified_payload_digest'](pathlib.Path('target/graph-build-cache'), os.environ['EXPECTED_KEY']) is not None
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
-              output.write(f'valid={str(valid).lower()}\n')
-          print(f'Graph payload matches prepared key: {valid}')
-          if not valid:
-              print("Graph cache upload skipped: payload is missing, invalid, or bound to different inputs")
-          PYTHON
-
-      - name: Save graph build
-        if: steps.graph-upload.outputs.valid == 'true'
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: target/graph-build-cache
-          key: graph-build-benchmark-20260911-v3-1-${{ matrix.name }}-${{ steps.graph-build.outputs.key }}
-
       - name: Run tests
+        id: graph-proof-tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
         run: |
           turbo run test:integration --env-mode=loose --filter "${{ matrix.name }}" --summarize
@@ -460,12 +244,14 @@ jobs:
           kill -15 ${{ steps.background-tasks.outputs.pid }} || true
           cat var/logs/background-task.log
 
-      - name: Upload artifact playwright-report
-        if: matrix.name == '@tests/hash-playwright' && (success() || failure())
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: ${{ env.TRIMMED_PACKAGE_NAME }}_report
-          path: tests/hash-playwright/playwright-report
+      - name: Recover original graph source and executable
+        if: always() && env.GRAPH_SOURCE_PROOF_PHASE == 'prove' && steps.graph-proof-script.outcome == 'success'
+        env:
+          PROOF_STARTUP_OUTCOME: ${{ steps.background-tasks.outcome }}
+          PROOF_TEST_OUTCOME: ${{ steps.graph-proof-tests.outcome }}
+        run: |
+          trap 'rm -f -- "$RUNNER_TEMP/graph_source_invalidation.py"' EXIT
+          python3 "$RUNNER_TEMP/graph_source_invalidation.py" recover
 
       - name: Record current task timings
         if: always()
@@ -501,7 +287,7 @@ jobs:
         env:
           GRAPH_PREPARED_KEY: ${{ steps.graph-build.outputs.key }}
           GRAPH_CACHE_HIT: ${{ steps.graph-cache.outputs.cache-hit }}
-          GRAPH_UPLOAD_VALID: ${{ steps.graph-upload.outputs.valid }}
+          GRAPH_UPLOAD_VALID: ""
         run: |
           python3 - <<'PYTHON'
           import json, os, pathlib, shutil
@@ -512,8 +298,6 @@ jobs:
               if path.is_file() and not path.is_symlink():
                   shutil.copyfile(path, logs / ('graph-' + path.name))
           receipt = {key: os.environ.get(key, '') for key in ['GRAPH_PREPARED_KEY', 'GRAPH_CACHE_HIT', 'GRAPH_UPLOAD_VALID']}
-          binary = pathlib.Path('target/debug/hash-graph')
-          receipt['graph_binary_size_bytes'] = binary.stat().st_size if binary.is_file() and not binary.is_symlink() else None
           (logs / 'graph-cache-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
           print(json.dumps(receipt))
           PYTHON
@@ -526,60 +310,3 @@ jobs:
           path: |
             var/api
             var/logs
-
-  publish-rust:
-    name: Publish dry run (Rust)
-    needs: [setup]
-    if: needs.setup.outputs.publish-rust != '[]' && (github.event_name == 'pull_request' || github.event_name == 'merge_group')
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: 6c9b16b02a5393ae982cec33784e151c3aeed519
-
-      - name: Clean up disk
-        uses: $/.github/actions/clean-up-disk
-
-      - name: Build package flags
-        id: flags
-        env:
-          PUBLISH_PACKAGES: ${{ needs.setup.outputs.publish-rust }}
-        run: |
-          PACKAGES=$(echo "$PUBLISH_PACKAGES" | jq -r '.[]' | while read -r pkg; do echo -n "-p $pkg "; done)
-          echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
-
-      - name: Publish (dry run)
-        run: cargo publish --all-features --dry-run --no-verify ${{ steps.flags.outputs.packages }}
-
-  passed:
-    name: Tests passed
-    needs:
-      [
-        setup,
-        sccache-credentials,
-        unit-tests,
-        integration-tests,
-        publish-rust,
-        graph-build-cache-check,
-      ]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check graph build cache checks
-        run: test "${{ needs.graph-build-cache-check.result }}" = success
-      - name: Check setup script
-        run: |
-          [[ ${{ needs.setup.result }} = success ]]
-      - name: Check sccache credentials
-        run: |
-          [[ ${{ needs.sccache-credentials.result }} = success ]]
-      - name: Check unit tests
-        run: |
-          [[ ${{ needs.unit-tests.result }} =~ success|skipped ]]
-      - name: Check integration tests
-        run: |
-          [[ ${{ needs.integration-tests.result }} =~ success|skipped ]]
-      - name: Check publish results
-        run: |
-          [[ ${{ needs.publish-rust.result }} =~ success|skipped ]]
