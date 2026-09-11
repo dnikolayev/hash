@@ -1,13 +1,10 @@
-# Fork-only harness derived from .github/workflows/test.yml.
-# Smoke measures only two integrations; it does not measure complete Test CI.
-# All samples disable remote Turbo and sccache; both variants use the same source.
-name: Integration build benchmark (smoke)
+name: Graph build preparation check
 run-name: ${{ github.ref_name }} / attempt ${{ github.run_attempt }}
 
 on:
   push:
     branches:
-      - 'speedup/integration-build-benchmark-*'
+      - 'speedup/integration-build-prepare-check'
 
 permissions:
   contents: read
@@ -18,8 +15,8 @@ env:
   CARGO_INCREMENTAL: '0'
   NEXTEST_PROFILE: ci
   BENCHMARK_BASELINE_SHA: '67f60d5446ed3224609161f938e1b36bc9d62f89'
-  BENCHMARK_SOURCE_SHA: '4f9e87e9fca8aca5b85ebecfab5caca9c930b4f1'
-  BENCHMARK_VARIANT: 'baseline'
+  BENCHMARK_SOURCE_SHA: '1082f6cf0060c3da81bbd3f36aaed4ff6108c247'
+  BENCHMARK_VARIANT: 'candidate'
   BENCHMARK_SAMPLE: 'smoke'
   BENCHMARK_SCOPE: 'integration-only'
   BENCHMARK_WORKFLOW_SHA: ${{ github.workflow_sha }}
@@ -32,7 +29,7 @@ jobs:
   integration-tests:
     name: Integration
     env:
-      HASH_GRAPH_BUILD_CACHE: "baseline"
+      HASH_GRAPH_BUILD_CACHE: "1"
     strategy:
       matrix:
         include:
@@ -53,7 +50,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: 4f9e87e9fca8aca5b85ebecfab5caca9c930b4f1
+          ref: 1082f6cf0060c3da81bbd3f36aaed4ff6108c247
 
       - name: Clean up disk
         uses: $/.github/actions/clean-up-disk
@@ -115,158 +112,9 @@ jobs:
         if: hashFiles('apps/hash-graph/package.json') != ''
         run: python3 .github/actions/graph-build-cache/graph_build_cache.py prepare
 
-      - name: Restore graph build
-        id: graph-cache
-        if: env.HASH_GRAPH_BUILD_CACHE == '1' && steps.graph-build.outputs.key != ''
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: target/graph-build-cache
-          key: graph-build-benchmark-20260911-smoke-${{ matrix.name }}-${{ steps.graph-build.outputs.key }}
-
-      - name: Find test steps to run
-        id: tests
-        run: |
-          HAS_BACKGROUND_TASKS=$(turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .name] != []' || echo 'false')
-          echo "has-background-tasks=$HAS_BACKGROUND_TASKS" | tee -a "$GITHUB_OUTPUT"
-
-          HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
-
-      - name: Create temp files and folders
-        run: mkdir -p var/logs
-
-      - name: Install playwright
-        if: matrix.name == '@tests/hash-playwright'
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
-        with:
-          max_attempts: 3
-          timeout_minutes: 2
-          shell: bash
-          command: npx playwright install chromium
-
-      - name: Show disk usage
-        run: df -h
-
-      - name: Launch external services
-        # Retried because BuildKit occasionally fails with transient rpc errors on
-        # individual runners (e.g. "failed to receive status: rpc error: code =
-        # Unavailable desc = error reading from server: EOF"), failing the job
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
-        with:
-          max_attempts: 3
-          timeout_minutes: 15
-          retry_wait_seconds: 15
-          shell: bash
-          command: cd infra/compose && docker compose --profile dev up -d
-
-      - name: Start background tasks
-        id: background-tasks
-        if: steps.tests.outputs.has-background-tasks == 'true'
-        env:
-          # Set terminal logging to WARN level and enable verbose file logging for CI
-          HASH_GRAPH_LOG_CONSOLE_LEVEL: warn
-          HASH_GRAPH_LOG_FILE_ENABLED: true
-          HASH_GRAPH_LOG_FILE_LEVEL: info
-          HASH_GRAPH_LOG_FOLDER: ${{ github.workspace }}/var/logs
-        run: |
-          # Optimistically compile background tasks. Ideally, we also `build` them but this includes
-          # `@apps/plugin-browser` which needs `build:test` instead. We cannot filter it out because
-          # except when running PlayWright tests, the plugin-browser is already pruned out so the
-          # command would fail.
-          turbo run compile --env-mode=loose
-          mkdir -p logs
-          turbo run start:test --env-mode=loose --log-order stream >var/logs/background-task.log 2>&1 &
-          PID=$!
-          echo "pid=$PID" | tee -a "$GITHUB_OUTPUT"
-
-          # Not strictly needed to run the healthchecks here as they are also run in the integration
-          # tests but it this way we can fail the job early if the background tasks are not healthy.
-          # Also, the recorded time for the different steps is more accurate.
-          turbo run start:test:healthcheck --env-mode=loose
-
-      - name: Show disk usage
-        run: df -h
-
-      - name: Validate graph build for upload
-        id: graph-upload
-        if: env.HASH_GRAPH_BUILD_CACHE == '1' && steps.graph-build.outputs.key != '' && steps.graph-cache.outputs.cache-hit != 'true'
-        env:
-          EXPECTED_KEY: ${{ steps.graph-build.outputs.key }}
-        run: |
-          python3 - <<'PYTHON'
-          import os, pathlib, runpy
-          helper = runpy.run_path('.github/actions/graph-build-cache/graph_build_cache.py')
-          valid = helper['valid_payload'](pathlib.Path('target/graph-build-cache'), os.environ['EXPECTED_KEY'])
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
-              output.write(f'valid={str(valid).lower()}\n')
-          print(f'Graph payload matches prepared key: {valid}')
-          PYTHON
-
-      - name: Save graph build
-        if: steps.graph-upload.outputs.valid == 'true'
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-        with:
-          path: target/graph-build-cache
-          key: graph-build-benchmark-20260911-smoke-${{ matrix.name }}-${{ steps.graph-build.outputs.key }}
-
-      - name: Run tests
-        continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
-        run: |
-          turbo run test:integration --env-mode=loose --filter "${{ matrix.name }}"
-          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')" >> "$GITHUB_ENV"
-
-      - name: Show disk usage
-        run: df -h
-
-      - uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
-        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
-        with:
-          flags: ${{ env.TRIMMED_PACKAGE_NAME }}
-          token: "" ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
-
-      - name: Show container logs
-        if: ${{ success() || failure() }}
-        working-directory: infra/compose
-        run: docker compose --profile dev logs --timestamps
-
-      - name: Show background tasks logs
-        if: always() && steps.tests.outputs.has-background-tasks == 'true'
-        run: |
-          kill -15 ${{ steps.background-tasks.outputs.pid }} || true
-          cat var/logs/background-task.log
-
-      - name: Upload artifact playwright-report
-        if: matrix.name == '@tests/hash-playwright' && (success() || failure())
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: ${{ env.TRIMMED_PACKAGE_NAME }}_report
-          path: tests/hash-playwright/playwright-report
-
-      - name: Record graph cache evidence
-        if: always()
+      - name: Require supported graph build inputs
         env:
           GRAPH_PREPARED_KEY: ${{ steps.graph-build.outputs.key }}
-          GRAPH_CACHE_HIT: ${{ steps.graph-cache.outputs.cache-hit }}
-          GRAPH_UPLOAD_VALID: ${{ steps.graph-upload.outputs.valid }}
         run: |
-          python3 - <<'PYTHON'
-          import json, os, pathlib, shutil
-          logs = pathlib.Path('var/logs')
-          logs.mkdir(parents=True, exist_ok=True)
-          for source in ['target/graph-build-inputs.json', 'target/graph-build-cache/manifest.json']:
-              path = pathlib.Path(source)
-              if path.is_file() and not path.is_symlink():
-                  shutil.copyfile(path, logs / ('graph-' + path.name))
-          receipt = {key: os.environ.get(key, '') for key in ['GRAPH_PREPARED_KEY', 'GRAPH_CACHE_HIT', 'GRAPH_UPLOAD_VALID']}
-          (logs / 'graph-cache-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
-          print(json.dumps(receipt))
-          PYTHON
-
-      - name: Upload logs
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: success() || failure()
-        with:
-          name: ${{ env.TRIMMED_PACKAGE_NAME }}_logs
-          path: |
-            var/api
-            var/logs
+          test -n "$GRAPH_PREPARED_KEY"
+          cat target/graph-build-inputs.json
