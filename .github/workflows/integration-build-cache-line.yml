@@ -1,0 +1,158 @@
+# Fork-only native cache-line detector verification after Playwright preparation.
+# Dedicated correctness evidence; excluded from integration and performance claims.
+name: Graph cache-line detector verification
+run-name: ${{ github.ref_name }} / attempt ${{ github.run_attempt }}
+
+on:
+  push:
+    branches:
+      - "speedup/integration-build-cache-line-*"
+
+permissions:
+  contents: read
+
+env:
+  TURBO_CACHE: "local:rw"
+  TURBO_TOKEN: ""
+  CARGO_INCREMENTAL: "0"
+  NEXTEST_PROFILE: ci
+  BENCHMARK_BASELINE_SHA: "67f60d5446ed3224609161f938e1b36bc9d62f89"
+  BENCHMARK_SOURCE_SHA: "6c9b16b02a5393ae982cec33784e151c3aeed519"
+  BENCHMARK_VARIANT: "candidate"
+  BENCHMARK_SAMPLE: "1"
+  BENCHMARK_SCOPE: "cache-line-detector-verification"
+  BENCHMARK_WORKFLOW_SHA: ${{ github.workflow_sha }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cache-line-verification:
+    name: Cache-line detector (${{ matrix.probe }})
+    env:
+      HASH_GRAPH_BUILD_CACHE: "1"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - probe: "1"
+            name: "@tests/hash-playwright"
+            path: tests/hash-playwright
+          - probe: "2"
+            name: "@tests/hash-playwright"
+            path: tests/hash-playwright
+          - probe: "3"
+            name: "@tests/hash-playwright"
+            path: tests/hash-playwright
+          - probe: "4"
+            name: "@tests/hash-playwright"
+            path: tests/hash-playwright
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Show selection reason
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX"
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: 6c9b16b02a5393ae982cec33784e151c3aeed519
+
+      - name: Clean up disk
+        uses: $/.github/actions/clean-up-disk
+
+      - name: Install tools
+        uses: $/.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          encrypted_sccache_credentials: ""
+          sccache_encryption_key: ""
+
+      - name: Prune repository
+        uses: $/.github/actions/prune-repository
+        with:
+          scope: |
+            ${{ matrix.name }}
+
+      - name: Warm up repository
+        uses: $/.github/actions/warm-up-repo
+
+      - name: Record benchmark environment
+        run: |
+          mkdir -p var/logs
+          python3 - <<'PYTHON'
+          import json, os, pathlib, platform, subprocess
+          def output(command):
+              return subprocess.check_output(command, text=True).strip()
+          record = {
+              'baseline_sha': os.environ['BENCHMARK_BASELINE_SHA'],
+              'candidate_sha': os.environ['BENCHMARK_SOURCE_SHA'],
+              'checkout_sha': output(['git', 'rev-parse', 'HEAD']),
+              'variant': os.environ['BENCHMARK_VARIANT'],
+              'sample': os.environ['BENCHMARK_SAMPLE'],
+              'scope': os.environ['BENCHMARK_SCOPE'],
+              'workflow_sha': os.environ['BENCHMARK_WORKFLOW_SHA'],
+              'run_id': os.environ['GITHUB_RUN_ID'],
+              'run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'runner_arch': os.environ['RUNNER_ARCH'],
+              'runner_os': os.environ['RUNNER_OS'],
+              'runner_name': os.environ['RUNNER_NAME'],
+              'image_version': os.environ.get('ImageVersion'),
+              'platform': platform.platform(),
+              'cpu_count': os.cpu_count(),
+              'rustc': output(['rustc', '-vV']),
+              'cargo': output(['cargo', '--version']),
+              'node': output(['node', '--version']),
+              'turbo': output(['turbo', '--version']),
+              'turbo_cache': os.environ['TURBO_CACHE'],
+              'cargo_incremental': os.environ['CARGO_INCREMENTAL'],
+              'sccache': 'disabled',
+          }
+          text = json.dumps(record, indent=2)
+          pathlib.Path('var/logs/benchmark-environment.json').write_text(text + '\n')
+          print(text)
+          PYTHON
+
+      - name: Prepare graph build
+        id: graph-build
+        if: env.HASH_GRAPH_BUILD_CACHE == '1' && hashFiles('apps/hash-graph/package.json') != ''
+        run: python3 .github/actions/graph-build-cache/graph_build_cache.py prepare
+
+      - name: Require graph build preparation
+        if: env.HASH_GRAPH_BUILD_CACHE == '1' && hashFiles('apps/hash-graph/package.json') != ''
+        env:
+          PREPARED_KEY: ${{ steps.graph-build.outputs.key }}
+        run: test -n "$PREPARED_KEY"
+
+      - name: Compare native cache-line detectors
+        env:
+          DIAGNOSTIC_PROBE: ${{ matrix.probe }}
+          DIAGNOSTIC_PREPARED_KEY: ${{ steps.graph-build.outputs.key }}
+          VERIFICATION_SCRIPT_SHA256: "f0fd77081554d71d3907fcd147dfb2c395a711f20f4aa17c078905689b020d58"
+        run: |
+          verification_script=$(mktemp "$RUNNER_TEMP/verify-cache-line.XXXXXX")
+          trap 'rm -f -- "$verification_script"' EXIT
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_WORKFLOW_SHA}/.github/benchmarks/graph-build-reuse/verify_cache_line.py" \
+            --output "$verification_script"
+          python3 - "$verification_script" <<'PYTHON'
+          import hashlib, os, pathlib, sys
+          actual = hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest()
+          if actual != os.environ['VERIFICATION_SCRIPT_SHA256']:
+              raise SystemExit('verification-script-checksum-mismatch')
+          PYTHON
+          python3 "$verification_script"
+
+      - name: Upload cache-line verification
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: graph-cache-line-pw-${{ matrix.probe }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          path: |
+            var/logs/graph-cache-line-verification.json
+            target/graph-build-inputs.json
