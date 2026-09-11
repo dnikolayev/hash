@@ -18,6 +18,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  graph-build-cache-check:
+    name: Graph build cache checks
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Check graph build reuse
+        run: python3 .github/actions/graph-build-cache/graph_build_cache_test.py
+      - name: Check timing comparison
+        run: python3 .github/scripts/integration_build_timings_test.py
+
   setup:
     runs-on: ubuntu-24.04
     permissions:
@@ -205,6 +218,8 @@ jobs:
 
   integration-tests:
     name: Integration
+    env:
+      HASH_GRAPH_BUILD_CACHE: "1"
     needs: [setup, sccache-credentials]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
@@ -244,6 +259,19 @@ jobs:
 
       - name: Warm up repository
         uses: $/.github/actions/warm-up-repo
+
+      - name: Prepare graph build
+        id: graph-build
+        if: hashFiles('apps/hash-graph/package.json') != ''
+        run: python3 .github/actions/graph-build-cache/graph_build_cache.py prepare
+
+      - name: Restore graph build
+        id: graph-cache
+        if: steps.graph-build.outputs.key != ''
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: target/graph-build-cache
+          key: graph-build-v1-${{ matrix.name }}-${{ steps.graph-build.outputs.key }}
 
       - name: Find test steps to run
         id: tests
@@ -309,6 +337,30 @@ jobs:
 
       - name: Show disk usage
         run: df -h
+
+      - name: Validate graph build for upload
+        id: graph-build-output
+        if: steps.graph-build.outputs.key != ''
+        env:
+          EXPECTED_GRAPH_BUILD_KEY: ${{ steps.graph-build.outputs.key }}
+        run: |
+          python3 - <<'PYTHON'
+          import os
+          from pathlib import Path
+          import sys
+          sys.path.insert(0, ".github/actions/graph-build-cache")
+          from graph_build_cache import valid_payload
+          valid = valid_payload(Path("target/graph-build-cache"), os.environ["EXPECTED_GRAPH_BUILD_KEY"])
+          with open(os.environ["GITHUB_OUTPUT"], "a") as stream:
+              stream.write(f"valid={str(valid).lower()}\n")
+          PYTHON
+
+      - name: Save graph build
+        if: steps.graph-build.outputs.key != '' && steps.graph-cache.outputs.cache-hit != 'true' && steps.graph-build-output.outputs.valid == 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: target/graph-build-cache
+          key: graph-build-v1-${{ matrix.name }}-${{ steps.graph-build.outputs.key }}
 
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
@@ -378,10 +430,18 @@ jobs:
   passed:
     name: Tests passed
     needs:
-      [setup, sccache-credentials, unit-tests, integration-tests, publish-rust]
+      - setup
+      - sccache-credentials
+      - unit-tests
+      - integration-tests
+      - publish-rust
+      - graph-build-cache-check
     if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: Check graph build cache checks
+        run: |
+          [[ ${{ needs.graph-build-cache-check.result }} = success ]]
       - name: Check setup script
         run: |
           [[ ${{ needs.setup.result }} = success ]]
