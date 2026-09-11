@@ -22,6 +22,8 @@ import tomllib
 COMMAND = ["cargo", "build", "--bin", "hash-graph", "--all-features"]
 WRAPPER = "python3 ../../.github/actions/graph-build-cache/graph_build_cache.py compile"
 OUTPUT_DIRS = {"target", "node_modules", ".git", ".turbo", "__pycache__"}
+# wasm-pack writes this JavaScript consumer output during service startup.
+WASM_OUTPUT = Path("libs/@blockprotocol/type-system/rust/pkg")
 BUILD_ENV = re.compile(
     r"^(CARGO|RUST|CC|CXX|AR|AS|LD|CFLAGS|CXXFLAGS|CPPFLAGS|LDFLAGS|"
     r"HOST_|TARGET_|PKG_CONFIG|OPENSSL|ZSTD|LIBZ|CMAKE|BINDGEN|LLVM|LIBCLANG|"
@@ -162,7 +164,8 @@ def source_digest(root: Path, packages: list[str], configs: list[Path]) -> str:
     paths = {root / os.fsdecode(name) for name in tracked.split(b"\0") if name}
     def add_directory(directory: Path) -> None:
         for parent, dirs, files in os.walk(directory, followlinks=False):
-            dirs[:] = sorted(name for name in dirs if name not in OUTPUT_DIRS)
+            dirs[:] = sorted(name for name in dirs if name not in OUTPUT_DIRS
+                             and Path(parent) / name != root / WASM_OUTPUT)
             paths.update(Path(parent) / name for name in dirs if (Path(parent) / name).is_symlink())
             paths.update(Path(parent) / name for name in files)
 

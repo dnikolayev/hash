@@ -129,6 +129,27 @@ class GraphBuildCache(unittest.TestCase):
         with patch.object(cache, "machine_digest", return_value="another-root"):
             self.assertNotEqual(before, self.key())
 
+    def test_declared_wasm_output_does_not_drift_but_tracked_and_generated_inputs_do(self) -> None:
+        manifest = self.write("libs/@blockprotocol/type-system/rust/Cargo.toml", b"input")
+        self.metadata["packages"].append({"source": None, "manifest_path": str(manifest)})
+        before = self.key()
+        output_name = "libs/@blockprotocol/type-system/rust/pkg/type-system_bg.wasm"
+        output = self.write(output_name, b"wasm output")
+        self.assertEqual(before, self.key())
+        output.write_bytes(b"rebuilt wasm output")
+        self.assertEqual(before, self.key())
+        generated = self.write("libs/@blockprotocol/type-system/rust/generated/types.rs", b"generated input")
+        self.assertNotEqual(before, self.key())
+        generated.unlink()
+        self.assertEqual(before, self.key())
+        other_pkg = self.write("libs/dependency/pkg/input.rs", b"another package input")
+        self.assertNotEqual(before, self.key())
+        other_pkg.unlink()
+        with patch.object(cache.subprocess, "check_output", return_value=self.tracked + output_name.encode() + b"\0"):
+            tracked_key = self.key()
+            output.write_bytes(b"changed tracked input")
+            self.assertNotEqual(tracked_key, self.key())
+
     def test_corrupt_missing_wrong_arch_nonexecutable_and_symlink_payloads_miss(self) -> None:
         mutations = [lambda: (self.payload / "hash-graph").write_bytes(b"corrupt"),
                      lambda: (self.payload / "manifest.json").write_text("[]"),

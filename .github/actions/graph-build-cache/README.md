@@ -18,6 +18,8 @@ Cargo package files including generated inputs, resolved Cargo metadata and
 lockfile, Cargo configuration, compiler/tool identities, the compiler environment,
 runner image/platform, and canonical checkout path. The path matters because the
 graph embeds `CARGO_MANIFEST_DIR` when locating runtime environment files.
+The untracked wasm-pack output in the type-system crate is excluded because native
+graph compilation does not consume it; tracked files there remain inputs.
 
 Cargo metadata resolves the pruned workspace before hashing. The helper rechecks
 inputs after compilation and refuses to store an output if they changed.
