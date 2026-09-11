@@ -248,12 +248,67 @@ class GraphBuildCache(unittest.TestCase):
 
 
 class CompilerEnvironment(unittest.TestCase):
+    def test_real_environment_function_resolves_shims_before_isolating(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            installed = root / "installed/bin"
+            installed.mkdir(parents=True)
+            for name in ("rustc", "cargo", "protoc", "cc", "c++", "ld", "ar", "as", "pkg-config", "cmake", "make", "custom-wrapper", "custom-cc"):
+                tool = installed / name
+                tool.write_bytes(b"synthetic tool")
+                tool.chmod(0o755)
+            shims = root / "shims"
+            shims.mkdir()
+            (shims / "protoc").write_bytes(b"tool-manager shim")
+            (shims / "protoc").chmod(0o755)
+            original = {"HOME": str(root / "home"), "PATH": f"{shims}:{installed}",
+                        "PROTOC": str(installed / "protoc"), "RUSTUP_TOOLCHAIN": "nightly-synthetic",
+                        "RUSTC_WRAPPER": str(installed / "custom-wrapper"), "CC": str(installed / "custom-cc"),
+                        "SCCACHE_SERVER_PORT": "4226", "MISE_TRUSTED_CONFIG_PATHS": "/synthetic",
+                        "GITHUB_TOKEN": "synthetic-sensitive-value"}
+            calls = []
+
+            def query(args, cwd, env):
+                calls.append((args, env))
+                return str(root / "installed").encode() if "sysroot" in args else b"synthetic version"
+
+            with patch.object(cache.platform, "system", return_value="Linux"), patch.object(cache.platform, "machine", return_value="x86_64"), patch.object(cache, "run", side_effect=query):
+                env, tools = cache.compiler_environment(root, original)
+                self.assertIs(calls[0][1], original)
+                self.assertTrue(all(call_env is env for _, call_env in calls[1:]))
+                self.assertEqual([args for args, _ in calls],
+                                 [["rustc", "--print", "sysroot"], ["rustc", "-vV"], ["cargo", "--version"]])
+                self.assertEqual(env["SCCACHE_SERVER_PORT"], "4226")
+                self.assertEqual(env["PROTOC"], str(installed / "protoc"))
+                self.assertNotIn(str(shims), env["PATH"])
+                self.assertNotIn("GITHUB_TOKEN", env)
+                self.assertNotIn("MISE_TRUSTED_CONFIG_PATHS", env)
+                self.assertNotIn("synthetic-sensitive-value", tools)
+                (installed / "cc").write_bytes(b"changed tool")
+                self.assertNotEqual(tools, cache.compiler_environment(root, original)[1])
+                _, before_wrapper_change = cache.compiler_environment(root, original)
+                (installed / "custom-wrapper").write_bytes(b"changed wrapper")
+                self.assertNotEqual(before_wrapper_change, cache.compiler_environment(root, original)[1])
+                self.assertTrue(all(args[0] in {"rustc", "cargo"} for args, _ in calls))
+
+    def test_diagnostics_use_reason_codes_without_exception_payloads(self) -> None:
+        for args, expected in ((["rustc", "--print", "sysroot"], "sysroot-query-failed"),
+                               (["cargo", "metadata"], "metadata-command-failed"),
+                               (["protoc", "--version"], "tool-version-failed")):
+            error = subprocess.CalledProcessError(1, ["synthetic-sensitive-value"], stderr=b"synthetic-sensitive-value")
+            with self.subTest(args=args), patch.object(cache.subprocess, "run", side_effect=error):
+                with self.assertRaises(cache.NoReuse) as caught:
+                    cache.run(args, Path("/synthetic"), {})
+                self.assertEqual(cache.failure_reason(caught.exception), expected)
+        for error in (OSError("synthetic-sensitive-value"), KeyError("synthetic-sensitive-value"), ValueError("synthetic-sensitive-value")):
+            self.assertNotIn("synthetic-sensitive-value", cache.failure_reason(error))
+
     def test_custom_flags_targets_and_profiles_fall_back(self) -> None:
         original = {"HOME": "/home/example", "PATH": "/usr/bin"}
         with patch.object(cache.platform, "system", return_value="Linux"), patch.object(cache.platform, "machine", return_value="x86_64"):
             for name in ("RUSTFLAGS", "CFLAGS", "CARGO_TARGET_DIR", "CARGO_BUILD_TARGET",
                          "CARGO_PROFILE_DEV_OPT_LEVEL", "CARGO_ENCODED_RUSTFLAGS",
-                         "OPENSSL_DIR", "PKG_CONFIG_PATH", "CPATH", "SCCACHE_RECACHE", "SCCACHE_DISABLE"):
+                         "OPENSSL_DIR", "PKG_CONFIG_PATH", "CPATH", "LD_LIBRARY_PATH", "SCCACHE_RECACHE", "SCCACHE_DISABLE"):
                 with self.subTest(name=name), self.assertRaises(cache.NoReuse):
                     cache.compiler_environment(Path("/example"), {**original, name: "custom"})
 
