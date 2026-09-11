@@ -20,7 +20,7 @@ env:
   BENCHMARK_VARIANT: "candidate"
   BENCHMARK_SAMPLE: "1"
   BENCHMARK_SCOPE: "graph-native-compiler-diagnostic"
-  GRAPH_NATIVE_SCRIPT_SHA256: "f1c4dff2043266c65482dcf7c8735f3f2c84e00f57a3b4f4a919f1d4f0bceaf7"
+  GRAPH_NATIVE_SCRIPT_SHA256: "c38c74a496923395e138f090d06d09a38363b8b80ea4b08cd0432ae1206c995d"
   BENCHMARK_WORKFLOW_SHA: ${{ github.workflow_sha }}
 
 concurrency:

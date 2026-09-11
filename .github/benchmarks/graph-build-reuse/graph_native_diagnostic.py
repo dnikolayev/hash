@@ -88,15 +88,24 @@ def main():
             "/tmp": "$TMP",
         }.items(), key=lambda item: -len(item[0]))
 
-        def public(value):
+        def public(value, context=None):
             if isinstance(value, dict):
-                return {name: public(item) for name, item in value.items()}
+                return {name: public(item, "rustc-argv" if name == "argv"
+                                    and Path(str(value.get("executable", ""))).name == "rustc" else None)
+                        for name, item in value.items()}
             if isinstance(value, list):
-                return [public(item) for item in value]
+                return [public(item, "extern" if context == "rustc-argv" and index > 0
+                               and value[index - 1] == "--extern" else None)
+                        for index, item in enumerate(value)]
             if isinstance(value, str):
                 for path, alias in aliases:
                     value = value.replace(path, alias)
-                assert not re.search(r"https?://[^/\s]*@|(?:password|secret|authorization|token)=", value, re.I), "unexpected-argument-value"
+                scan = value
+                if context == "extern":
+                    library = re.fullmatch(r"(?:[A-Za-z_][A-Za-z0-9_]*:)*[A-Za-z_][A-Za-z0-9_]*=(\$WORKSPACE/target/[^\r\n]+\.(?:rlib|rmeta|so))", value)
+                    if library:
+                        scan = library[1]
+                assert not re.search(r"https?://[^/\s]*@|(?:password|secret|authorization|token)=", scan, re.I), "unexpected-argument-value"
             return value
 
         metadata = json.loads(helper["run"](["cargo", "metadata", "--format-version=1", "--all-features"], root, env))
