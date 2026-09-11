@@ -207,10 +207,14 @@ def machine_digest(root: Path, original: dict[str, str]) -> str:
     machine = {"platform": platform.platform(), "machine": platform.machine(),
                "image": original.get("ImageVersion", ""), "root": str(root),
                "os": file_digest(Path("/etc/os-release"))}
-    # /proc/cpuinfo includes sampled clocks; only model and capabilities are inputs.
-    machine["cpu"] = digest("\n".join(sorted({line for line in Path("/proc/cpuinfo").read_text().splitlines()
-                                              if line.split(":", 1)[0].strip() in
-                                              {"model name", "flags", "Features", "CPU implementer", "CPU part"}})).encode())
+    # x86 identities retain exact capabilities without the CPU model label.
+    fields = {"flags"} if machine["machine"] == "x86_64" else {
+        "model name", "flags", "Features", "CPU implementer", "CPU part"}
+    cpu = sorted({line for line in Path("/proc/cpuinfo").read_text().splitlines()
+                  if line.split(":", 1)[0].strip() in fields})
+    if not cpu or any(not line.partition(":")[2].strip() for line in cpu):
+        raise NoReuse("cpu-capabilities-unavailable")
+    machine["cpu"] = digest("\n".join(cpu).encode())
     return digest(encoded(machine))
 
 

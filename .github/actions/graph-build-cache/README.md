@@ -29,6 +29,8 @@ Cargo package files including generated inputs, resolved Cargo metadata and
 lockfile, Cargo configuration, compiler/tool identities, the compiler environment,
 runner image/platform, and canonical checkout path. The path matters because the
 graph embeds `CARGO_MANIFEST_DIR` when locating runtime environment files.
+On x86, CPU capability lines are inputs but the model name is not. ARM CPU
+identity fields remain inputs. Missing CPU capability data bypasses reuse.
 The untracked wasm-pack output in the type-system crate is excluded because native
 graph compilation does not consume it; tracked files there remain inputs.
 

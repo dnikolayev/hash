@@ -471,6 +471,30 @@ class GraphBuildCache(unittest.TestCase):
         self.assertNotIn(str(self.root), json.dumps(inputs))
 
 
+class MachineIdentity(unittest.TestCase):
+    def test_model_labels_do_not_replace_capability_checks(self) -> None:
+        with patch.object(cache.platform, "machine", return_value="x86_64") as architecture, \
+             patch.object(cache.platform, "platform", return_value="Linux-synthetic"), \
+             patch.object(cache, "file_digest", return_value="os-digest"), \
+             patch.object(Path, "read_text") as cpu:
+            root, env = Path("/workspace"), {"ImageVersion": "synthetic-image"}
+            cpu.return_value = "model name: Model A\nflags: sse2 avx2\n"
+            first = cache.machine_digest(root, env)
+            cpu.return_value = "model name: Model B\nflags: sse2 avx2\n"
+            self.assertEqual(cache.machine_digest(root, env), first)
+            cpu.return_value = "model name: Model B\nflags: sse2\n"
+            self.assertNotEqual(cache.machine_digest(root, env), first)
+            for value in ("model name: Model B\n", "flags: \t\n", "flags\n"):
+                cpu.return_value = value
+                with self.subTest(cpu=value), self.assertRaisesRegex(cache.NoReuse, "cpu-capabilities-unavailable"):
+                    cache.machine_digest(root, env)
+            architecture.return_value = "aarch64"
+            cpu.return_value = "Features: fp asimd\nCPU implementer: 0x41\nCPU part: 0xd00\n"
+            first = cache.machine_digest(root, env)
+            cpu.return_value = cpu.return_value.replace("0xd00", "0xd01")
+            self.assertNotEqual(cache.machine_digest(root, env), first)
+
+
 class CompilerEnvironment(unittest.TestCase):
     def test_real_environment_function_resolves_shims_before_isolating(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
