@@ -349,8 +349,8 @@ jobs:
           from pathlib import Path
           import sys
           sys.path.insert(0, ".github/actions/graph-build-cache")
-          from graph_build_cache import valid_payload
-          valid = valid_payload(Path("target/graph-build-cache"), os.environ["EXPECTED_GRAPH_BUILD_KEY"])
+          from graph_build_cache import verified_payload_digest
+          valid = verified_payload_digest(Path("target/graph-build-cache"), os.environ["EXPECTED_GRAPH_BUILD_KEY"]) is not None
           with open(os.environ["GITHUB_OUTPUT"], "a") as stream:
               stream.write(f"valid={str(valid).lower()}\n")
           PYTHON

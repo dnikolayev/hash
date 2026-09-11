@@ -244,16 +244,18 @@ def executable(path: Path) -> bool:
             and int.from_bytes(header[18:20], "little") == machine)
 
 
-def valid_payload(payload: Path, key: str) -> bool:
+def verified_payload_digest(payload: Path, key: str) -> str | None:
     try:
         if payload.is_symlink() or not regular(payload / "manifest.json"):
-            return False
+            return None
         manifest = json.loads((payload / "manifest.json").read_text())
         binary = payload / "hash-graph"
-        return (set(manifest) == {"key", "sha256"} and manifest["key"] == key
-                and executable(binary) and manifest["sha256"] == file_digest(binary))
+        if (set(manifest) == {"key", "sha256"} and manifest["key"] == key
+                and executable(binary) and manifest["sha256"] == file_digest(binary)):
+            return manifest["sha256"]
     except (OSError, ValueError, TypeError):
-        return False
+        return None
+    return None
 
 
 def write_payload(payload: Path, binary: Path, key: str) -> None:
@@ -292,8 +294,9 @@ def compile_graph(root: Path, original: dict[str, str]) -> int:
     payload = root / "target/graph-build-cache"
     binary = root / "target/debug/hash-graph"
     started = time.monotonic()
-    if mode == "1" and valid_payload(payload, key):
-        if not executable(binary) or file_digest(binary) != file_digest(payload / "hash-graph"):
+    payload_hash = verified_payload_digest(payload, key) if mode == "1" else None
+    if payload_hash is not None:
+        if not executable(binary) or file_digest(binary) != payload_hash:
             copy_binary(payload / "hash-graph", binary)
         event("restore", "hit", started, key)
         return 0
