@@ -225,7 +225,8 @@ def generate(original, baseline_sha, candidate_sha, variant, campaign, sample, s
         jobs = checker + jobs
         jobs = replace_once(jobs,
             '[setup, sccache-credentials, unit-tests, integration-tests, publish-rust]',
-            '[setup, sccache-credentials, unit-tests, integration-tests, publish-rust, graph-build-cache-check]')
+            '[\n        setup,\n        sccache-credentials,\n        unit-tests,\n'
+            '        integration-tests,\n        publish-rust,\n        graph-build-cache-check,\n      ]')
         jobs = replace_once(jobs, '      - name: Check setup script\n',
             '''      - name: Check graph build cache checks
         run: test "${{ needs.graph-build-cache-check.result }}" = success

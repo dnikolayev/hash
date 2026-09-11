@@ -19,7 +19,7 @@ env:
   NEXTEST_PROFILE: ci
   BENCHMARK_BASELINE_SHA: "67f60d5446ed3224609161f938e1b36bc9d62f89"
   BENCHMARK_SOURCE_SHA: "f4dc7dd3faa93fd22120ba3ce48ece73592b5324"
-  BENCHMARK_VARIANT: "baseline"
+  BENCHMARK_VARIANT: "candidate"
   BENCHMARK_SAMPLE: "1"
   BENCHMARK_SCOPE: "complete-test"
   BENCHMARK_WORKFLOW_SHA: ${{ github.workflow_sha }}
@@ -29,6 +29,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  graph-build-cache-check:
+    name: Graph build cache checks
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: f4dc7dd3faa93fd22120ba3ce48ece73592b5324
+      - name: Check graph build reuse
+        run: python3 .github/actions/graph-build-cache/graph_build_cache_test.py
+      - name: Check timing comparison
+        run: python3 .github/scripts/integration_build_timings_test.py
+
   setup:
     runs-on: ubuntu-24.04
     permissions:
@@ -222,7 +237,7 @@ jobs:
   integration-tests:
     name: Integration
     env:
-      HASH_GRAPH_BUILD_CACHE: "0"
+      HASH_GRAPH_BUILD_CACHE: "1"
     needs: [setup, sccache-credentials]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
@@ -525,10 +540,19 @@ jobs:
   passed:
     name: Tests passed
     needs:
-      [setup, sccache-credentials, unit-tests, integration-tests, publish-rust]
+      [
+        setup,
+        sccache-credentials,
+        unit-tests,
+        integration-tests,
+        publish-rust,
+        graph-build-cache-check,
+      ]
     if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: Check graph build cache checks
+        run: test "${{ needs.graph-build-cache-check.result }}" = success
       - name: Check setup script
         run: |
           [[ ${{ needs.setup.result }} = success ]]
