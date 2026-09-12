@@ -1,0 +1,28 @@
+{
+  "baseline_sha": "67f60d5446ed3224609161f938e1b36bc9d62f89",
+  "candidate_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+  "cargo": "cargo 1.99.0-nightly (7c83d4cc0 2026-07-29)",
+  "cargo_incremental": "0",
+  "checkout_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+  "cpu_count": 4,
+  "cpu_lines": [
+    "flags\t\t: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl tsc_reliable nonstop_tsc cpuid extd_apicid aperfmperf tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy svm cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves user_shstk clzero xsaveerptr rdpru arat npt nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold v_vmsave_vmload umip vaes vpclmulqdq rdpid fsrm",
+    "model name\t: AMD EPYC 7763 64-Core Processor"
+  ],
+  "image_version": "20260907.300.1",
+  "minio_client_image": "quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727",
+  "node": "v22.21.1",
+  "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+  "run_attempt": "1",
+  "run_id": "34671885632",
+  "runner_arch": "X64",
+  "runner_os": "Linux",
+  "rustc": "rustc 1.99.0-nightly (11177f223 2026-08-02)\nbinary: rustc\ncommit-hash: 11177f2235f0c842b00f82c558ad9480c0c3a895\ncommit-date: 2026-08-02\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8",
+  "sample": "3",
+  "sccache": "disabled",
+  "scope": "complete-test",
+  "turbo": "2.10.12",
+  "turbo_cache": "local:rw",
+  "variant": "candidate",
+  "workflow_sha": "17133acd8c6ad36c42fdd037e3c70119dc98b428"
+}

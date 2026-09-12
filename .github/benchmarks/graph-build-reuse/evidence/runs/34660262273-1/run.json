@@ -1,0 +1,12 @@
+{
+  "conclusion": "success",
+  "created_at": "2026-09-12T00:02:40Z",
+  "head_sha": "e5233318e96ffeb263bd55d7f8268f6bf753364d",
+  "html_url": "https://github.com/dnikolayev/hash/actions/runs/34660262273",
+  "id": 34660262273,
+  "path": ".github/workflows/integration-build-benchmark.yml",
+  "run_attempt": 1,
+  "run_started_at": "2026-09-12T00:02:40Z",
+  "status": "completed",
+  "updated_at": "2026-09-12T00:31:38Z"
+}

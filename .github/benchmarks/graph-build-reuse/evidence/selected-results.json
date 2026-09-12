@@ -1,0 +1,1070 @@
+{
+  "candidate_cache_storage": {
+    "compressed_bytes_median": 974778783,
+    "compressed_bytes_range": [
+      974771666,
+      974780568
+    ],
+    "entries_per_sample": 3,
+    "samples": 3
+  },
+  "candidate_helper_phase_totals_per_affected_job": {
+    "cold": {
+      "build": {
+        "event_count_median": 1,
+        "event_count_range": [
+          1,
+          1
+        ],
+        "job_samples": 15,
+        "total_seconds_median": 434.764,
+        "total_seconds_range": [
+          346.529,
+          474.753
+        ]
+      },
+      "cpu-probe": {
+        "event_count_median": 6,
+        "event_count_range": [
+          5,
+          6
+        ],
+        "job_samples": 15,
+        "total_seconds_median": 0.6,
+        "total_seconds_range": [
+          0.357,
+          1.158
+        ]
+      },
+      "lock": {
+        "event_count_median": 4,
+        "event_count_range": [
+          3,
+          4
+        ],
+        "job_samples": 15,
+        "total_seconds_median": 25.801,
+        "total_seconds_range": [
+          18.568,
+          149.91
+        ]
+      },
+      "prepare": {
+        "event_count_median": 5,
+        "event_count_range": [
+          4,
+          5
+        ],
+        "job_samples": 15,
+        "total_seconds_median": 142.537,
+        "total_seconds_range": [
+          78.34,
+          287.313
+        ]
+      },
+      "restore": {
+        "event_count_median": 4,
+        "event_count_range": [
+          3,
+          4
+        ],
+        "job_samples": 15,
+        "total_seconds_median": 13.737,
+        "total_seconds_range": [
+          3.49,
+          60.647
+        ]
+      },
+      "store": {
+        "event_count_median": 1,
+        "event_count_range": [
+          1,
+          1
+        ],
+        "job_samples": 15,
+        "total_seconds_median": 35.224,
+        "total_seconds_range": [
+          30.003,
+          53.294
+        ]
+      }
+    },
+    "warm": {
+      "build": {
+        "event_count_median": 0,
+        "event_count_range": [
+          0,
+          0
+        ],
+        "job_samples": 15,
+        "total_seconds_median": 0,
+        "total_seconds_range": [
+          0,
+          0
+        ]
+      },
+      "cpu-probe": {
+        "event_count_median": 5,
+        "event_count_range": [
+          4,
+          5
+        ],
+        "job_samples": 15,
+        "total_seconds_median": 0.46,
+        "total_seconds_range": [
+          0.323,
+          1.475
+        ]
+      },
+      "lock": {
+        "event_count_median": 4,
+        "event_count_range": [
+          3,
+          4
+        ],
+        "job_samples": 15,
+        "total_seconds_median": 25.832,
+        "total_seconds_range": [
+          19.403,
+          148.594
+        ]
+      },
+      "prepare": {
+        "event_count_median": 5,
+        "event_count_range": [
+          4,
+          5
+        ],
+        "job_samples": 15,
+        "total_seconds_median": 146.038,
+        "total_seconds_range": [
+          114.142,
+          296.944
+        ]
+      },
+      "restore": {
+        "event_count_median": 4,
+        "event_count_range": [
+          3,
+          4
+        ],
+        "job_samples": 15,
+        "total_seconds_median": 7.82,
+        "total_seconds_range": [
+          5.822,
+          27.672
+        ]
+      },
+      "store": {
+        "event_count_median": 0,
+        "event_count_range": [
+          0,
+          0
+        ],
+        "job_samples": 15,
+        "total_seconds_median": 0,
+        "total_seconds_range": [
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "baseline": {
+        "graph_cache_state": "not-applicable",
+        "median_seconds": 1092.0,
+        "range_seconds": [
+          1035.0,
+          1107.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34641904793",
+          "https://github.com/dnikolayev/hash/actions/runs/34660262273",
+          "https://github.com/dnikolayev/hash/actions/runs/34673120179"
+        ],
+        "samples": 3
+      },
+      "candidate": {
+        "graph_cache_state": "actions-cache-miss",
+        "median_seconds": 1219.0,
+        "range_seconds": [
+          1216.0,
+          1234.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34663777159",
+          "https://github.com/dnikolayev/hash/actions/runs/34666896025",
+          "https://github.com/dnikolayev/hash/actions/runs/34670121057"
+        ],
+        "samples": 3
+      },
+      "comparison_status": "descriptive comparison",
+      "condition": "cold",
+      "metric": "Graph benches",
+      "percent_saved": -11.6,
+      "scope": "complete-test",
+      "seconds_saved": -127.0
+    },
+    {
+      "baseline": {
+        "graph_cache_state": "not-applicable",
+        "median_seconds": 777.0,
+        "range_seconds": [
+          638.0,
+          779.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34641904793",
+          "https://github.com/dnikolayev/hash/actions/runs/34660262273",
+          "https://github.com/dnikolayev/hash/actions/runs/34673120179"
+        ],
+        "samples": 3
+      },
+      "candidate": {
+        "graph_cache_state": "actions-cache-miss",
+        "median_seconds": 816.0,
+        "range_seconds": [
+          766.0,
+          862.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34663777159",
+          "https://github.com/dnikolayev/hash/actions/runs/34666896025",
+          "https://github.com/dnikolayev/hash/actions/runs/34670121057"
+        ],
+        "samples": 3
+      },
+      "comparison_status": "descriptive comparison",
+      "condition": "cold",
+      "metric": "Graph HTTP",
+      "percent_saved": -5.0,
+      "scope": "complete-test",
+      "seconds_saved": -39.0
+    },
+    {
+      "baseline": {
+        "graph_cache_state": "not-applicable",
+        "median_seconds": 867.0,
+        "range_seconds": [
+          806.0,
+          898.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34641904793",
+          "https://github.com/dnikolayev/hash/actions/runs/34660262273",
+          "https://github.com/dnikolayev/hash/actions/runs/34673120179"
+        ],
+        "samples": 3
+      },
+      "candidate": {
+        "graph_cache_state": "actions-cache-miss",
+        "median_seconds": 859.0,
+        "range_seconds": [
+          828.0,
+          951.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34663777159",
+          "https://github.com/dnikolayev/hash/actions/runs/34666896025",
+          "https://github.com/dnikolayev/hash/actions/runs/34670121057"
+        ],
+        "samples": 3
+      },
+      "comparison_status": "descriptive comparison",
+      "condition": "cold",
+      "metric": "Graph integration",
+      "percent_saved": 0.9,
+      "scope": "complete-test",
+      "seconds_saved": 8.0
+    },
+    {
+      "baseline": {
+        "graph_cache_state": "not-applicable",
+        "median_seconds": 1237.0,
+        "range_seconds": [
+          1206.0,
+          1339.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34641904793",
+          "https://github.com/dnikolayev/hash/actions/runs/34660262273",
+          "https://github.com/dnikolayev/hash/actions/runs/34673120179"
+        ],
+        "samples": 3
+      },
+      "candidate": {
+        "graph_cache_state": "actions-cache-miss",
+        "median_seconds": 1406.0,
+        "range_seconds": [
+          1226.0,
+          1429.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34663777159",
+          "https://github.com/dnikolayev/hash/actions/runs/34666896025",
+          "https://github.com/dnikolayev/hash/actions/runs/34670121057"
+        ],
+        "samples": 3
+      },
+      "comparison_status": "descriptive comparison",
+      "condition": "cold",
+      "metric": "Backend integration",
+      "percent_saved": -13.7,
+      "scope": "complete-test",
+      "seconds_saved": -169.0
+    },
+    {
+      "baseline": {
+        "graph_cache_state": "not-applicable",
+        "median_seconds": 1768.0,
+        "range_seconds": [
+          1645.0,
+          1777.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34641904793",
+          "https://github.com/dnikolayev/hash/actions/runs/34660262273",
+          "https://github.com/dnikolayev/hash/actions/runs/34673120179"
+        ],
+        "samples": 3
+      },
+      "candidate": {
+        "graph_cache_state": "actions-cache-miss",
+        "median_seconds": 1892.0,
+        "range_seconds": [
+          1846.0,
+          1899.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34663777159",
+          "https://github.com/dnikolayev/hash/actions/runs/34666896025",
+          "https://github.com/dnikolayev/hash/actions/runs/34670121057"
+        ],
+        "samples": 3
+      },
+      "comparison_status": "descriptive comparison",
+      "condition": "cold",
+      "metric": "Playwright",
+      "percent_saved": -7.0,
+      "scope": "complete-test",
+      "seconds_saved": -124.0
+    },
+    {
+      "baseline": {
+        "graph_cache_state": "not-applicable",
+        "median_seconds": 25865.0,
+        "range_seconds": [
+          25289.0,
+          26355.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34641904793",
+          "https://github.com/dnikolayev/hash/actions/runs/34660262273",
+          "https://github.com/dnikolayev/hash/actions/runs/34673120179"
+        ],
+        "samples": 3
+      },
+      "candidate": {
+        "graph_cache_state": "actions-cache-miss",
+        "median_seconds": 26544.0,
+        "range_seconds": [
+          26431.0,
+          26611.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34663777159",
+          "https://github.com/dnikolayev/hash/actions/runs/34666896025",
+          "https://github.com/dnikolayev/hash/actions/runs/34670121057"
+        ],
+        "samples": 3
+      },
+      "comparison_status": "descriptive comparison",
+      "condition": "cold",
+      "metric": "Aggregate jobs",
+      "percent_saved": -2.6,
+      "scope": "complete-test",
+      "seconds_saved": -679.0
+    },
+    {
+      "baseline": {
+        "graph_cache_state": "not-applicable",
+        "median_seconds": 1882.0,
+        "range_seconds": [
+          1738.0,
+          1885.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34641904793",
+          "https://github.com/dnikolayev/hash/actions/runs/34660262273",
+          "https://github.com/dnikolayev/hash/actions/runs/34673120179"
+        ],
+        "samples": 3
+      },
+      "candidate": {
+        "graph_cache_state": "actions-cache-miss",
+        "median_seconds": 2003.0,
+        "range_seconds": [
+          1937.0,
+          2007.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34663777159",
+          "https://github.com/dnikolayev/hash/actions/runs/34666896025",
+          "https://github.com/dnikolayev/hash/actions/runs/34670121057"
+        ],
+        "samples": 3
+      },
+      "comparison_status": "descriptive comparison",
+      "condition": "cold",
+      "metric": "Complete workflow",
+      "percent_saved": -6.4,
+      "scope": "complete-test",
+      "seconds_saved": -121.0
+    },
+    {
+      "baseline": {
+        "graph_cache_state": "not-applicable",
+        "median_seconds": 1070.0,
+        "range_seconds": [
+          1057.0,
+          1117.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34645133106",
+          "https://github.com/dnikolayev/hash/actions/runs/34662145145",
+          "https://github.com/dnikolayev/hash/actions/runs/34674881183"
+        ],
+        "samples": 3
+      },
+      "candidate": {
+        "graph_cache_state": "accepted-cache-hit",
+        "median_seconds": 843.0,
+        "range_seconds": [
+          691.0,
+          868.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34665584512",
+          "https://github.com/dnikolayev/hash/actions/runs/34668599115",
+          "https://github.com/dnikolayev/hash/actions/runs/34671885632"
+        ],
+        "samples": 3
+      },
+      "comparison_status": "descriptive comparison",
+      "condition": "warm",
+      "metric": "Graph benches",
+      "percent_saved": 21.2,
+      "scope": "complete-test",
+      "seconds_saved": 227.0
+    },
+    {
+      "baseline": {
+        "graph_cache_state": "not-applicable",
+        "median_seconds": 715.0,
+        "range_seconds": [
+          605.0,
+          724.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34645133106",
+          "https://github.com/dnikolayev/hash/actions/runs/34662145145",
+          "https://github.com/dnikolayev/hash/actions/runs/34674881183"
+        ],
+        "samples": 3
+      },
+      "candidate": {
+        "graph_cache_state": "accepted-cache-hit",
+        "median_seconds": 409.0,
+        "range_seconds": [
+          364.0,
+          424.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34665584512",
+          "https://github.com/dnikolayev/hash/actions/runs/34668599115",
+          "https://github.com/dnikolayev/hash/actions/runs/34671885632"
+        ],
+        "samples": 3
+      },
+      "comparison_status": "descriptive comparison",
+      "condition": "warm",
+      "metric": "Graph HTTP",
+      "percent_saved": 42.8,
+      "scope": "complete-test",
+      "seconds_saved": 306.0
+    },
+    {
+      "baseline": {
+        "graph_cache_state": "not-applicable",
+        "median_seconds": 885.0,
+        "range_seconds": [
+          830.0,
+          926.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34645133106",
+          "https://github.com/dnikolayev/hash/actions/runs/34662145145",
+          "https://github.com/dnikolayev/hash/actions/runs/34674881183"
+        ],
+        "samples": 3
+      },
+      "candidate": {
+        "graph_cache_state": "accepted-cache-hit",
+        "median_seconds": 521.0,
+        "range_seconds": [
+          500.0,
+          594.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34665584512",
+          "https://github.com/dnikolayev/hash/actions/runs/34668599115",
+          "https://github.com/dnikolayev/hash/actions/runs/34671885632"
+        ],
+        "samples": 3
+      },
+      "comparison_status": "descriptive comparison",
+      "condition": "warm",
+      "metric": "Graph integration",
+      "percent_saved": 41.1,
+      "scope": "complete-test",
+      "seconds_saved": 364.0
+    },
+    {
+      "baseline": {
+        "graph_cache_state": "not-applicable",
+        "median_seconds": 1260.0,
+        "range_seconds": [
+          1005.0,
+          1293.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34645133106",
+          "https://github.com/dnikolayev/hash/actions/runs/34662145145",
+          "https://github.com/dnikolayev/hash/actions/runs/34674881183"
+        ],
+        "samples": 3
+      },
+      "candidate": {
+        "graph_cache_state": "accepted-cache-hit",
+        "median_seconds": 889.0,
+        "range_seconds": [
+          812.0,
+          944.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34665584512",
+          "https://github.com/dnikolayev/hash/actions/runs/34668599115",
+          "https://github.com/dnikolayev/hash/actions/runs/34671885632"
+        ],
+        "samples": 3
+      },
+      "comparison_status": "descriptive comparison",
+      "condition": "warm",
+      "metric": "Backend integration",
+      "percent_saved": 29.4,
+      "scope": "complete-test",
+      "seconds_saved": 371.0
+    },
+    {
+      "baseline": {
+        "graph_cache_state": "not-applicable",
+        "median_seconds": 1521.0,
+        "range_seconds": [
+          1222.0,
+          1712.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34645133106",
+          "https://github.com/dnikolayev/hash/actions/runs/34662145145",
+          "https://github.com/dnikolayev/hash/actions/runs/34674881183"
+        ],
+        "samples": 3
+      },
+      "candidate": {
+        "graph_cache_state": "accepted-cache-hit",
+        "median_seconds": 1451.0,
+        "range_seconds": [
+          1188.0,
+          1458.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34665584512",
+          "https://github.com/dnikolayev/hash/actions/runs/34668599115",
+          "https://github.com/dnikolayev/hash/actions/runs/34671885632"
+        ],
+        "samples": 3
+      },
+      "comparison_status": "descriptive comparison",
+      "condition": "warm",
+      "metric": "Playwright",
+      "percent_saved": 4.6,
+      "scope": "complete-test",
+      "seconds_saved": 70.0
+    },
+    {
+      "baseline": {
+        "graph_cache_state": "not-applicable",
+        "median_seconds": 26036.0,
+        "range_seconds": [
+          24849.0,
+          26467.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34645133106",
+          "https://github.com/dnikolayev/hash/actions/runs/34662145145",
+          "https://github.com/dnikolayev/hash/actions/runs/34674881183"
+        ],
+        "samples": 3
+      },
+      "candidate": {
+        "graph_cache_state": "accepted-cache-hit",
+        "median_seconds": 23770.0,
+        "range_seconds": [
+          23725.0,
+          24075.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34665584512",
+          "https://github.com/dnikolayev/hash/actions/runs/34668599115",
+          "https://github.com/dnikolayev/hash/actions/runs/34671885632"
+        ],
+        "samples": 3
+      },
+      "comparison_status": "descriptive comparison",
+      "condition": "warm",
+      "metric": "Aggregate jobs",
+      "percent_saved": 8.7,
+      "scope": "complete-test",
+      "seconds_saved": 2266.0
+    },
+    {
+      "baseline": {
+        "graph_cache_state": "not-applicable",
+        "median_seconds": 1585.0,
+        "range_seconds": [
+          1388.0,
+          1808.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34645133106",
+          "https://github.com/dnikolayev/hash/actions/runs/34662145145",
+          "https://github.com/dnikolayev/hash/actions/runs/34674881183"
+        ],
+        "samples": 3
+      },
+      "candidate": {
+        "graph_cache_state": "accepted-cache-hit",
+        "median_seconds": 1511.0,
+        "range_seconds": [
+          1241.0,
+          1518.0
+        ],
+        "run_links": [
+          "https://github.com/dnikolayev/hash/actions/runs/34665584512",
+          "https://github.com/dnikolayev/hash/actions/runs/34668599115",
+          "https://github.com/dnikolayev/hash/actions/runs/34671885632"
+        ],
+        "samples": 3
+      },
+      "comparison_status": "descriptive comparison",
+      "condition": "warm",
+      "metric": "Complete workflow",
+      "percent_saved": 4.7,
+      "scope": "complete-test",
+      "seconds_saved": 74.0
+    }
+  ],
+  "correctness_boundary": {
+    "note": "Separate predecessor-source invalidation and recovery evidence; the primary performance claims use only the twelve-run matrix.",
+    "notes": "correctness.md",
+    "performance_excluded": true,
+    "receipt": "correctness.json",
+    "source": "6c9b16b02a5393ae982cec33784e151c3aeed519"
+  },
+  "last_substantive_job_counts": [
+    {
+      "condition": "cold",
+      "job": "Integration (@tests/hash-playwright)",
+      "samples": 3,
+      "variant": "baseline"
+    },
+    {
+      "condition": "warm",
+      "job": "Integration (@tests/hash-playwright)",
+      "samples": 2,
+      "variant": "baseline"
+    },
+    {
+      "condition": "warm",
+      "job": "Unit (@rust/hash-graph-atlas)",
+      "samples": 1,
+      "variant": "baseline"
+    },
+    {
+      "condition": "cold",
+      "job": "Integration (@tests/hash-playwright)",
+      "samples": 3,
+      "variant": "candidate"
+    },
+    {
+      "condition": "warm",
+      "job": "Integration (@tests/hash-playwright)",
+      "samples": 3,
+      "variant": "candidate"
+    }
+  ],
+  "measurement_boundaries": [
+    "Workflow wall is run_started_at through final job completion and is a CI waiting-time proxy, not push-to-notification time.",
+    "Aggregate jobs is summed execution time across non-skipped jobs and is CI consumption, not user waiting time.",
+    "Baseline warm means a same-tree second run with graph caching disabled; candidate warm requires five helper-accepted Actions hits.",
+    "Remote Turbo and sccache were disabled in both variants, and both used the same-digest Quay MinIO client substitution.",
+    "The baseline and candidate use the listed different source commits; timing is pinned to those commits, not the rebased final SHA.",
+    "The candidate has one extra focused cache-helper check job; the reported workflow shapes retain that difference.",
+    "The measured reuse path is Linux x86_64 on the listed hosted-runner image; unsupported platforms use the existing Cargo build.",
+    "The change adds no custom cache TTL; normal GitHub Actions cache retention and eviction apply."
+  ],
+  "run_matrix": [
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "condition": "cold",
+      "generator": {
+        "path": "repro/generate-8df5665817985f2faff7337714aa6ee5a7b595bf4775f273bfa539c8648d7c40.py",
+        "sha256": "8df5665817985f2faff7337714aa6ee5a7b595bf4775f273bfa539c8648d7c40"
+      },
+      "observed_graph_cache_state": "not-applicable",
+      "run_id": 34641904793,
+      "sample": 1,
+      "scope": "complete-test",
+      "source_sha": "6c9b16b02a5393ae982cec33784e151c3aeed519",
+      "url": "https://github.com/dnikolayev/hash/actions/runs/34641904793",
+      "variant": "baseline",
+      "workflow_sha": "38ce1ac2b0d18c86b12c1b0dd18667baef3cdb66",
+      "workflow_sha256": "9d8ac3bfb0c2ca426b01328ac64ac5553ab8545ee34572fdb6684aeff0001dd7"
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "condition": "warm",
+      "generator": {
+        "path": "repro/generate-8df5665817985f2faff7337714aa6ee5a7b595bf4775f273bfa539c8648d7c40.py",
+        "sha256": "8df5665817985f2faff7337714aa6ee5a7b595bf4775f273bfa539c8648d7c40"
+      },
+      "observed_graph_cache_state": "not-applicable",
+      "run_id": 34645133106,
+      "sample": 1,
+      "scope": "complete-test",
+      "source_sha": "6c9b16b02a5393ae982cec33784e151c3aeed519",
+      "url": "https://github.com/dnikolayev/hash/actions/runs/34645133106",
+      "variant": "baseline",
+      "workflow_sha": "3b01c0287ce831909a3f6622043cd6346f33b0da",
+      "workflow_sha256": "9d8ac3bfb0c2ca426b01328ac64ac5553ab8545ee34572fdb6684aeff0001dd7"
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "condition": "cold",
+      "generator": {
+        "path": "repro/generate-8df5665817985f2faff7337714aa6ee5a7b595bf4775f273bfa539c8648d7c40.py",
+        "sha256": "8df5665817985f2faff7337714aa6ee5a7b595bf4775f273bfa539c8648d7c40"
+      },
+      "observed_graph_cache_state": "not-applicable",
+      "run_id": 34660262273,
+      "sample": 2,
+      "scope": "complete-test",
+      "source_sha": "6c9b16b02a5393ae982cec33784e151c3aeed519",
+      "url": "https://github.com/dnikolayev/hash/actions/runs/34660262273",
+      "variant": "baseline",
+      "workflow_sha": "e5233318e96ffeb263bd55d7f8268f6bf753364d",
+      "workflow_sha256": "24363edc852f862afd0af98032e8463c97d36537365e1f2eeeb11d1319101111"
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "condition": "warm",
+      "generator": {
+        "path": "repro/generate-8df5665817985f2faff7337714aa6ee5a7b595bf4775f273bfa539c8648d7c40.py",
+        "sha256": "8df5665817985f2faff7337714aa6ee5a7b595bf4775f273bfa539c8648d7c40"
+      },
+      "observed_graph_cache_state": "not-applicable",
+      "run_id": 34662145145,
+      "sample": 2,
+      "scope": "complete-test",
+      "source_sha": "6c9b16b02a5393ae982cec33784e151c3aeed519",
+      "url": "https://github.com/dnikolayev/hash/actions/runs/34662145145",
+      "variant": "baseline",
+      "workflow_sha": "edbb1856b51087d019fb2bf4b1233a28d402e232",
+      "workflow_sha256": "24363edc852f862afd0af98032e8463c97d36537365e1f2eeeb11d1319101111"
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "condition": "cold",
+      "generator": {
+        "path": "repro/generate-958a847d4552a27a6ec76cbbf2a5c0fde4d0240f114855d590659d621e4c37df.py",
+        "sha256": "958a847d4552a27a6ec76cbbf2a5c0fde4d0240f114855d590659d621e4c37df"
+      },
+      "observed_graph_cache_state": "actions-cache-miss",
+      "run_id": 34663777159,
+      "sample": 1,
+      "scope": "complete-test",
+      "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+      "url": "https://github.com/dnikolayev/hash/actions/runs/34663777159",
+      "variant": "candidate",
+      "workflow_sha": "3b40c51eacada38b9f7ad6f84afcd3dce7d7ae01",
+      "workflow_sha256": "aeda1bb8e8c1753f21c9ac3095248bba0a4e7f43ba486ab01bd1899ea2e1f04f"
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "condition": "warm",
+      "generator": {
+        "path": "repro/generate-958a847d4552a27a6ec76cbbf2a5c0fde4d0240f114855d590659d621e4c37df.py",
+        "sha256": "958a847d4552a27a6ec76cbbf2a5c0fde4d0240f114855d590659d621e4c37df"
+      },
+      "observed_graph_cache_state": "accepted-cache-hit",
+      "run_id": 34665584512,
+      "sample": 1,
+      "scope": "complete-test",
+      "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+      "url": "https://github.com/dnikolayev/hash/actions/runs/34665584512",
+      "variant": "candidate",
+      "workflow_sha": "6b7f14fb452c760cf2bc83f7af6ff842346e802a",
+      "workflow_sha256": "aeda1bb8e8c1753f21c9ac3095248bba0a4e7f43ba486ab01bd1899ea2e1f04f"
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "condition": "cold",
+      "generator": {
+        "path": "repro/generate-958a847d4552a27a6ec76cbbf2a5c0fde4d0240f114855d590659d621e4c37df.py",
+        "sha256": "958a847d4552a27a6ec76cbbf2a5c0fde4d0240f114855d590659d621e4c37df"
+      },
+      "observed_graph_cache_state": "actions-cache-miss",
+      "run_id": 34666896025,
+      "sample": 2,
+      "scope": "complete-test",
+      "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+      "url": "https://github.com/dnikolayev/hash/actions/runs/34666896025",
+      "variant": "candidate",
+      "workflow_sha": "5a5adc8597c4c342aefab4f680f9e424edf8bac1",
+      "workflow_sha256": "054ea3e2d7df7fed51a81954b1ac4b0ab2ce6ad49638313902092f74fe2bb01f"
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "condition": "warm",
+      "generator": {
+        "path": "repro/generate-958a847d4552a27a6ec76cbbf2a5c0fde4d0240f114855d590659d621e4c37df.py",
+        "sha256": "958a847d4552a27a6ec76cbbf2a5c0fde4d0240f114855d590659d621e4c37df"
+      },
+      "observed_graph_cache_state": "accepted-cache-hit",
+      "run_id": 34668599115,
+      "sample": 2,
+      "scope": "complete-test",
+      "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+      "url": "https://github.com/dnikolayev/hash/actions/runs/34668599115",
+      "variant": "candidate",
+      "workflow_sha": "cce13303c9e9b1e17063786d5eeff609ab2b47f0",
+      "workflow_sha256": "054ea3e2d7df7fed51a81954b1ac4b0ab2ce6ad49638313902092f74fe2bb01f"
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "condition": "cold",
+      "generator": {
+        "path": "repro/generate-958a847d4552a27a6ec76cbbf2a5c0fde4d0240f114855d590659d621e4c37df.py",
+        "sha256": "958a847d4552a27a6ec76cbbf2a5c0fde4d0240f114855d590659d621e4c37df"
+      },
+      "observed_graph_cache_state": "actions-cache-miss",
+      "run_id": 34670121057,
+      "sample": 3,
+      "scope": "complete-test",
+      "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+      "url": "https://github.com/dnikolayev/hash/actions/runs/34670121057",
+      "variant": "candidate",
+      "workflow_sha": "6032f1c90c1805e1ef30be286c3163e9f8431861",
+      "workflow_sha256": "3804d832162ca94931a1f7aff9aef0c2680288452c49bfe7fd4a2458b01923eb"
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "condition": "warm",
+      "generator": {
+        "path": "repro/generate-958a847d4552a27a6ec76cbbf2a5c0fde4d0240f114855d590659d621e4c37df.py",
+        "sha256": "958a847d4552a27a6ec76cbbf2a5c0fde4d0240f114855d590659d621e4c37df"
+      },
+      "observed_graph_cache_state": "accepted-cache-hit",
+      "run_id": 34671885632,
+      "sample": 3,
+      "scope": "complete-test",
+      "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+      "url": "https://github.com/dnikolayev/hash/actions/runs/34671885632",
+      "variant": "candidate",
+      "workflow_sha": "17133acd8c6ad36c42fdd037e3c70119dc98b428",
+      "workflow_sha256": "3804d832162ca94931a1f7aff9aef0c2680288452c49bfe7fd4a2458b01923eb"
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "condition": "cold",
+      "generator": {
+        "path": "repro/generate-6fe7daea657b95c205c887cb9c2b5c21dd63b68379f03e71826ffe69e843db21.py",
+        "sha256": "6fe7daea657b95c205c887cb9c2b5c21dd63b68379f03e71826ffe69e843db21"
+      },
+      "observed_graph_cache_state": "not-applicable",
+      "run_id": 34673120179,
+      "sample": 3,
+      "scope": "complete-test",
+      "source_sha": "6c9b16b02a5393ae982cec33784e151c3aeed519",
+      "url": "https://github.com/dnikolayev/hash/actions/runs/34673120179",
+      "variant": "baseline",
+      "workflow_sha": "dda78dc7d6e8b0833bb5583908d5c88c0d6770cb",
+      "workflow_sha256": "54c5cfe39108ada49a00fe2a7e9b513d34a83fd2383819a98ef82ba8c82c555f"
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "condition": "warm",
+      "generator": {
+        "path": "repro/generate-6fe7daea657b95c205c887cb9c2b5c21dd63b68379f03e71826ffe69e843db21.py",
+        "sha256": "6fe7daea657b95c205c887cb9c2b5c21dd63b68379f03e71826ffe69e843db21"
+      },
+      "observed_graph_cache_state": "not-applicable",
+      "run_id": 34674881183,
+      "sample": 3,
+      "scope": "complete-test",
+      "source_sha": "6c9b16b02a5393ae982cec33784e151c3aeed519",
+      "url": "https://github.com/dnikolayev/hash/actions/runs/34674881183",
+      "variant": "baseline",
+      "workflow_sha": "25b7b41df33c205502d2759cfb43819735cceacc",
+      "workflow_sha256": "54c5cfe39108ada49a00fe2a7e9b513d34a83fd2383819a98ef82ba8c82c555f"
+    }
+  ],
+  "schema": 1,
+  "selected_test_counts": {
+    "Integration (@rust/hash-graph-benches)": {
+      "criterion": {
+        "successful_cases": 86
+      }
+    },
+    "Integration (@rust/hash-graph-http-tests)": {
+      "http_requests": {
+        "setup": {
+          "processed": 49,
+          "succeeded": 49
+        },
+        "test": {
+          "processed": 181,
+          "succeeded": 181
+        }
+      }
+    },
+    "Integration (@rust/hash-graph-integration)": {
+      "nextest_summaries": [
+        {
+          "passed": 130,
+          "skipped": 0,
+          "tests_run": 130
+        }
+      ]
+    },
+    "Integration (@tests/hash-backend-integration)": {
+      "vitest_suites": [
+        {
+          "test_files": {
+            "passed": 19,
+            "total": 19
+          },
+          "tests": {
+            "passed": 110,
+            "skipped": 9,
+            "total": 119
+          }
+        },
+        {
+          "test_files": {
+            "passed": 3,
+            "total": 3
+          },
+          "tests": {
+            "passed": 48,
+            "total": 48
+          }
+        }
+      ]
+    },
+    "Integration (@tests/hash-playwright)": {
+      "playwright": {
+        "passed": 32,
+        "skipped": 8
+      }
+    }
+  },
+  "selection": {
+    "accepted_primary_runs": [
+      34641904793,
+      34645133106,
+      34660262273,
+      34662145145,
+      34663777159,
+      34665584512,
+      34666896025,
+      34668599115,
+      34670121057,
+      34671885632,
+      34673120179,
+      34674881183
+    ],
+    "graph_cache_reservation_warnings": 0,
+    "log_context": "Successful runs still contain unrelated Node runtime deprecation messages and an expected hash.invalid negative-path error; the logs are not warning-free.",
+    "policy": "Only these twelve primary runs enter medians, ranges, and deltas. Diagnostic, failed, and superseded runs are excluded."
+  },
+  "sources": {
+    "baseline": "6c9b16b02a5393ae982cec33784e151c3aeed519",
+    "baseline_to_measured_candidate_changed_paths": [
+      ".github/actions/graph-build-cache/README.md",
+      ".github/actions/graph-build-cache/cache_line_probe.rs",
+      ".github/actions/graph-build-cache/graph_build_cache.py",
+      ".github/actions/graph-build-cache/graph_build_cache_test.py",
+      ".github/scripts/integration-build-timings.py",
+      ".github/scripts/integration_build_timings_test.py",
+      ".github/workflows/test.yml"
+    ],
+    "final_candidate": "3278c458d1a8ec4492f1e3549ce244d376f778dd",
+    "final_parent": "8aedda02ba9162e77735234168281151d2d2584d",
+    "implementation_files_equal_to_measured_candidate": true,
+    "implementation_files_sha256": {
+      ".github/actions/graph-build-cache/README.md": "4a0fa040b942d2df7ca39be8370f72f82113c38ba43f14ea3993666c7cf807e9",
+      ".github/actions/graph-build-cache/cache_line_probe.rs": "da47381c06ee63327ab9936b0b4e375f558a4aa33f41e5c6873a4f0ae9389458",
+      ".github/actions/graph-build-cache/graph_build_cache.py": "ff67290e468d40178a6cc6cbc33ec80aad94d1117fa533f9bc7fbd5538203d55",
+      ".github/actions/graph-build-cache/graph_build_cache_test.py": "3b5355b015387a1445defa3ab3b877a0c9e172e6faeda12ad5bb164c13a980ec",
+      ".github/workflows/test.yml": "7634ab99c802a768757d98d1d1a4b44be379c1b17df1efcf9c1d779bafceb7b6"
+    },
+    "measured_candidate": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+    "original_base": "67f60d5446ed3224609161f938e1b36bc9d62f89",
+    "post_measurement_path_audit": {
+      "boundary": "Name-level audit of the final graph Cargo closure, fixed cache inputs, cache helper, and Test workflow. Performance remains pinned to the measured source.",
+      "changed_paths_checked": 201,
+      "changed_paths_sha256": "5566745b0adde632a49fe81cff0cbfeae634ea14d715cfdb77154b53ffe71f27",
+      "from_original_base": "67f60d5446ed3224609161f938e1b36bc9d62f89",
+      "modeled_local_package_directories": 44,
+      "relevant_path_intersection": [],
+      "to_final_parent": "8aedda02ba9162e77735234168281151d2d2584d"
+    }
+  },
+  "workflow_shapes": {
+    "baseline": {
+      "skipped_jobs": 1,
+      "successful_jobs": 76,
+      "total_jobs": 77
+    },
+    "candidate": {
+      "skipped_jobs": 1,
+      "successful_jobs": 77,
+      "total_jobs": 78
+    }
+  }
+}

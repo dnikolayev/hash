@@ -1,0 +1,502 @@
+{
+  "runs": [
+    {
+      "cache_condition": "cold",
+      "cache_evidence": {
+        "Integration (@rust/hash-graph-benches)": "runs/34641904793-1/jobs/103403955610/raw-cache.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34641904793-1/jobs/103403955701/raw-cache.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34641904793-1/jobs/103403955589/raw-cache.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34641904793-1/jobs/103403955622/raw-cache.json",
+        "Integration (@tests/hash-playwright)": "runs/34641904793-1/jobs/103403955582/raw-cache.json"
+      },
+      "graph_cache_receipts": {},
+      "jobs": "runs/34641904793-1/jobs.json",
+      "run": "runs/34641904793-1/run.json",
+      "runner_details": {
+        "Integration (@rust/hash-graph-benches)": "runs/34641904793-1/jobs/103403955610/runner-details.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34641904793-1/jobs/103403955701/runner-details.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34641904793-1/jobs/103403955589/runner-details.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34641904793-1/jobs/103403955622/runner-details.json",
+        "Integration (@tests/hash-playwright)": "runs/34641904793-1/jobs/103403955582/runner-details.json"
+      },
+      "scope": "complete-test",
+      "source_sha": "6c9b16b02a5393ae982cec33784e151c3aeed519",
+      "task_timings": {
+        "Integration (@rust/hash-graph-benches)": "runs/34641904793-1/jobs/103403955610/task-timings.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34641904793-1/jobs/103403955701/task-timings.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34641904793-1/jobs/103403955589/task-timings.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34641904793-1/jobs/103403955622/task-timings.json",
+        "Integration (@tests/hash-playwright)": "runs/34641904793-1/jobs/103403955582/task-timings.json"
+      },
+      "test_results": {
+        "Integration (@rust/hash-graph-benches)": "runs/34641904793-1/jobs/103403955610/results.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34641904793-1/jobs/103403955701/results.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34641904793-1/jobs/103403955589/results.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34641904793-1/jobs/103403955622/results.json",
+        "Integration (@tests/hash-playwright)": "runs/34641904793-1/jobs/103403955582/results.json"
+      },
+      "variant": "baseline",
+      "workflow_sha": "38ce1ac2b0d18c86b12c1b0dd18667baef3cdb66"
+    },
+    {
+      "cache_condition": "warm",
+      "cache_evidence": {
+        "Integration (@rust/hash-graph-benches)": "runs/34645133106-1/jobs/103414216462/raw-cache.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34645133106-1/jobs/103414216535/raw-cache.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34645133106-1/jobs/103414216441/raw-cache.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34645133106-1/jobs/103414216513/raw-cache.json",
+        "Integration (@tests/hash-playwright)": "runs/34645133106-1/jobs/103414216634/raw-cache.json"
+      },
+      "graph_cache_receipts": {},
+      "jobs": "runs/34645133106-1/jobs.json",
+      "run": "runs/34645133106-1/run.json",
+      "runner_details": {
+        "Integration (@rust/hash-graph-benches)": "runs/34645133106-1/jobs/103414216462/runner-details.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34645133106-1/jobs/103414216535/runner-details.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34645133106-1/jobs/103414216441/runner-details.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34645133106-1/jobs/103414216513/runner-details.json",
+        "Integration (@tests/hash-playwright)": "runs/34645133106-1/jobs/103414216634/runner-details.json"
+      },
+      "scope": "complete-test",
+      "source_sha": "6c9b16b02a5393ae982cec33784e151c3aeed519",
+      "task_timings": {
+        "Integration (@rust/hash-graph-benches)": "runs/34645133106-1/jobs/103414216462/task-timings.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34645133106-1/jobs/103414216535/task-timings.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34645133106-1/jobs/103414216441/task-timings.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34645133106-1/jobs/103414216513/task-timings.json",
+        "Integration (@tests/hash-playwright)": "runs/34645133106-1/jobs/103414216634/task-timings.json"
+      },
+      "test_results": {
+        "Integration (@rust/hash-graph-benches)": "runs/34645133106-1/jobs/103414216462/results.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34645133106-1/jobs/103414216535/results.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34645133106-1/jobs/103414216441/results.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34645133106-1/jobs/103414216513/results.json",
+        "Integration (@tests/hash-playwright)": "runs/34645133106-1/jobs/103414216634/results.json"
+      },
+      "variant": "baseline",
+      "workflow_sha": "3b01c0287ce831909a3f6622043cd6346f33b0da"
+    },
+    {
+      "cache_condition": "cold",
+      "cache_evidence": {
+        "Integration (@rust/hash-graph-benches)": "runs/34660262273-1/jobs/103461347199/raw-cache.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34660262273-1/jobs/103461347265/raw-cache.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34660262273-1/jobs/103461347276/raw-cache.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34660262273-1/jobs/103461347394/raw-cache.json",
+        "Integration (@tests/hash-playwright)": "runs/34660262273-1/jobs/103461347319/raw-cache.json"
+      },
+      "graph_cache_receipts": {},
+      "jobs": "runs/34660262273-1/jobs.json",
+      "run": "runs/34660262273-1/run.json",
+      "runner_details": {
+        "Integration (@rust/hash-graph-benches)": "runs/34660262273-1/jobs/103461347199/runner-details.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34660262273-1/jobs/103461347265/runner-details.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34660262273-1/jobs/103461347276/runner-details.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34660262273-1/jobs/103461347394/runner-details.json",
+        "Integration (@tests/hash-playwright)": "runs/34660262273-1/jobs/103461347319/runner-details.json"
+      },
+      "scope": "complete-test",
+      "source_sha": "6c9b16b02a5393ae982cec33784e151c3aeed519",
+      "task_timings": {
+        "Integration (@rust/hash-graph-benches)": "runs/34660262273-1/jobs/103461347199/task-timings.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34660262273-1/jobs/103461347265/task-timings.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34660262273-1/jobs/103461347276/task-timings.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34660262273-1/jobs/103461347394/task-timings.json",
+        "Integration (@tests/hash-playwright)": "runs/34660262273-1/jobs/103461347319/task-timings.json"
+      },
+      "test_results": {
+        "Integration (@rust/hash-graph-benches)": "runs/34660262273-1/jobs/103461347199/results.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34660262273-1/jobs/103461347265/results.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34660262273-1/jobs/103461347276/results.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34660262273-1/jobs/103461347394/results.json",
+        "Integration (@tests/hash-playwright)": "runs/34660262273-1/jobs/103461347319/results.json"
+      },
+      "variant": "baseline",
+      "workflow_sha": "e5233318e96ffeb263bd55d7f8268f6bf753364d"
+    },
+    {
+      "cache_condition": "warm",
+      "cache_evidence": {
+        "Integration (@rust/hash-graph-benches)": "runs/34662145145-1/jobs/103466820649/raw-cache.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34662145145-1/jobs/103466820658/raw-cache.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34662145145-1/jobs/103466820682/raw-cache.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34662145145-1/jobs/103466820614/raw-cache.json",
+        "Integration (@tests/hash-playwright)": "runs/34662145145-1/jobs/103466820653/raw-cache.json"
+      },
+      "graph_cache_receipts": {},
+      "jobs": "runs/34662145145-1/jobs.json",
+      "run": "runs/34662145145-1/run.json",
+      "runner_details": {
+        "Integration (@rust/hash-graph-benches)": "runs/34662145145-1/jobs/103466820649/runner-details.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34662145145-1/jobs/103466820658/runner-details.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34662145145-1/jobs/103466820682/runner-details.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34662145145-1/jobs/103466820614/runner-details.json",
+        "Integration (@tests/hash-playwright)": "runs/34662145145-1/jobs/103466820653/runner-details.json"
+      },
+      "scope": "complete-test",
+      "source_sha": "6c9b16b02a5393ae982cec33784e151c3aeed519",
+      "task_timings": {
+        "Integration (@rust/hash-graph-benches)": "runs/34662145145-1/jobs/103466820649/task-timings.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34662145145-1/jobs/103466820658/task-timings.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34662145145-1/jobs/103466820682/task-timings.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34662145145-1/jobs/103466820614/task-timings.json",
+        "Integration (@tests/hash-playwright)": "runs/34662145145-1/jobs/103466820653/task-timings.json"
+      },
+      "test_results": {
+        "Integration (@rust/hash-graph-benches)": "runs/34662145145-1/jobs/103466820649/results.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34662145145-1/jobs/103466820658/results.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34662145145-1/jobs/103466820682/results.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34662145145-1/jobs/103466820614/results.json",
+        "Integration (@tests/hash-playwright)": "runs/34662145145-1/jobs/103466820653/results.json"
+      },
+      "variant": "baseline",
+      "workflow_sha": "edbb1856b51087d019fb2bf4b1233a28d402e232"
+    },
+    {
+      "cache_condition": "cold",
+      "cache_evidence": {
+        "Integration (@rust/hash-graph-benches)": "runs/34663777159-1/jobs/103471680742/raw-cache.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34663777159-1/jobs/103471680662/raw-cache.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34663777159-1/jobs/103471680686/raw-cache.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34663777159-1/jobs/103471680692/raw-cache.json",
+        "Integration (@tests/hash-playwright)": "runs/34663777159-1/jobs/103471680721/raw-cache.json"
+      },
+      "cache_inventory": "runs/34663777159-1/cache-inventory.json",
+      "graph_cache_receipts": {
+        "Integration (@rust/hash-graph-benches)": "runs/34663777159-1/jobs/103471680742/cache-receipt.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34663777159-1/jobs/103471680662/cache-receipt.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34663777159-1/jobs/103471680686/cache-receipt.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34663777159-1/jobs/103471680692/cache-receipt.json",
+        "Integration (@tests/hash-playwright)": "runs/34663777159-1/jobs/103471680721/cache-receipt.json"
+      },
+      "jobs": "runs/34663777159-1/jobs.json",
+      "run": "runs/34663777159-1/run.json",
+      "runner_details": {
+        "Integration (@rust/hash-graph-benches)": "runs/34663777159-1/jobs/103471680742/runner-details.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34663777159-1/jobs/103471680662/runner-details.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34663777159-1/jobs/103471680686/runner-details.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34663777159-1/jobs/103471680692/runner-details.json",
+        "Integration (@tests/hash-playwright)": "runs/34663777159-1/jobs/103471680721/runner-details.json"
+      },
+      "scope": "complete-test",
+      "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+      "task_timings": {
+        "Integration (@rust/hash-graph-benches)": "runs/34663777159-1/jobs/103471680742/task-timings.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34663777159-1/jobs/103471680662/task-timings.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34663777159-1/jobs/103471680686/task-timings.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34663777159-1/jobs/103471680692/task-timings.json",
+        "Integration (@tests/hash-playwright)": "runs/34663777159-1/jobs/103471680721/task-timings.json"
+      },
+      "test_results": {
+        "Integration (@rust/hash-graph-benches)": "runs/34663777159-1/jobs/103471680742/results.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34663777159-1/jobs/103471680662/results.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34663777159-1/jobs/103471680686/results.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34663777159-1/jobs/103471680692/results.json",
+        "Integration (@tests/hash-playwright)": "runs/34663777159-1/jobs/103471680721/results.json"
+      },
+      "variant": "candidate",
+      "workflow_sha": "3b40c51eacada38b9f7ad6f84afcd3dce7d7ae01"
+    },
+    {
+      "cache_condition": "warm",
+      "cache_evidence": {
+        "Integration (@rust/hash-graph-benches)": "runs/34665584512-1/jobs/103476795981/raw-cache.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34665584512-1/jobs/103476795966/raw-cache.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34665584512-1/jobs/103476795934/raw-cache.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34665584512-1/jobs/103476795978/raw-cache.json",
+        "Integration (@tests/hash-playwright)": "runs/34665584512-1/jobs/103476795972/raw-cache.json"
+      },
+      "cache_inventory": "runs/34665584512-1/cache-inventory.json",
+      "graph_cache_receipts": {
+        "Integration (@rust/hash-graph-benches)": "runs/34665584512-1/jobs/103476795981/cache-receipt.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34665584512-1/jobs/103476795966/cache-receipt.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34665584512-1/jobs/103476795934/cache-receipt.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34665584512-1/jobs/103476795978/cache-receipt.json",
+        "Integration (@tests/hash-playwright)": "runs/34665584512-1/jobs/103476795972/cache-receipt.json"
+      },
+      "jobs": "runs/34665584512-1/jobs.json",
+      "run": "runs/34665584512-1/run.json",
+      "runner_details": {
+        "Integration (@rust/hash-graph-benches)": "runs/34665584512-1/jobs/103476795981/runner-details.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34665584512-1/jobs/103476795966/runner-details.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34665584512-1/jobs/103476795934/runner-details.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34665584512-1/jobs/103476795978/runner-details.json",
+        "Integration (@tests/hash-playwright)": "runs/34665584512-1/jobs/103476795972/runner-details.json"
+      },
+      "scope": "complete-test",
+      "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+      "task_timings": {
+        "Integration (@rust/hash-graph-benches)": "runs/34665584512-1/jobs/103476795981/task-timings.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34665584512-1/jobs/103476795966/task-timings.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34665584512-1/jobs/103476795934/task-timings.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34665584512-1/jobs/103476795978/task-timings.json",
+        "Integration (@tests/hash-playwright)": "runs/34665584512-1/jobs/103476795972/task-timings.json"
+      },
+      "test_results": {
+        "Integration (@rust/hash-graph-benches)": "runs/34665584512-1/jobs/103476795981/results.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34665584512-1/jobs/103476795966/results.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34665584512-1/jobs/103476795934/results.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34665584512-1/jobs/103476795978/results.json",
+        "Integration (@tests/hash-playwright)": "runs/34665584512-1/jobs/103476795972/results.json"
+      },
+      "variant": "candidate",
+      "workflow_sha": "6b7f14fb452c760cf2bc83f7af6ff842346e802a"
+    },
+    {
+      "cache_condition": "cold",
+      "cache_evidence": {
+        "Integration (@rust/hash-graph-benches)": "runs/34666896025-1/jobs/103480736009/raw-cache.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34666896025-1/jobs/103480736025/raw-cache.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34666896025-1/jobs/103480736039/raw-cache.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34666896025-1/jobs/103480736034/raw-cache.json",
+        "Integration (@tests/hash-playwright)": "runs/34666896025-1/jobs/103480736033/raw-cache.json"
+      },
+      "cache_inventory": "runs/34666896025-1/cache-inventory.json",
+      "graph_cache_receipts": {
+        "Integration (@rust/hash-graph-benches)": "runs/34666896025-1/jobs/103480736009/cache-receipt.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34666896025-1/jobs/103480736025/cache-receipt.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34666896025-1/jobs/103480736039/cache-receipt.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34666896025-1/jobs/103480736034/cache-receipt.json",
+        "Integration (@tests/hash-playwright)": "runs/34666896025-1/jobs/103480736033/cache-receipt.json"
+      },
+      "jobs": "runs/34666896025-1/jobs.json",
+      "run": "runs/34666896025-1/run.json",
+      "runner_details": {
+        "Integration (@rust/hash-graph-benches)": "runs/34666896025-1/jobs/103480736009/runner-details.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34666896025-1/jobs/103480736025/runner-details.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34666896025-1/jobs/103480736039/runner-details.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34666896025-1/jobs/103480736034/runner-details.json",
+        "Integration (@tests/hash-playwright)": "runs/34666896025-1/jobs/103480736033/runner-details.json"
+      },
+      "scope": "complete-test",
+      "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+      "task_timings": {
+        "Integration (@rust/hash-graph-benches)": "runs/34666896025-1/jobs/103480736009/task-timings.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34666896025-1/jobs/103480736025/task-timings.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34666896025-1/jobs/103480736039/task-timings.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34666896025-1/jobs/103480736034/task-timings.json",
+        "Integration (@tests/hash-playwright)": "runs/34666896025-1/jobs/103480736033/task-timings.json"
+      },
+      "test_results": {
+        "Integration (@rust/hash-graph-benches)": "runs/34666896025-1/jobs/103480736009/results.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34666896025-1/jobs/103480736025/results.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34666896025-1/jobs/103480736039/results.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34666896025-1/jobs/103480736034/results.json",
+        "Integration (@tests/hash-playwright)": "runs/34666896025-1/jobs/103480736033/results.json"
+      },
+      "variant": "candidate",
+      "workflow_sha": "5a5adc8597c4c342aefab4f680f9e424edf8bac1"
+    },
+    {
+      "cache_condition": "warm",
+      "cache_evidence": {
+        "Integration (@rust/hash-graph-benches)": "runs/34668599115-1/jobs/103485593175/raw-cache.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34668599115-1/jobs/103485593180/raw-cache.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34668599115-1/jobs/103485593182/raw-cache.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34668599115-1/jobs/103485593321/raw-cache.json",
+        "Integration (@tests/hash-playwright)": "runs/34668599115-1/jobs/103485593250/raw-cache.json"
+      },
+      "cache_inventory": "runs/34668599115-1/cache-inventory.json",
+      "graph_cache_receipts": {
+        "Integration (@rust/hash-graph-benches)": "runs/34668599115-1/jobs/103485593175/cache-receipt.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34668599115-1/jobs/103485593180/cache-receipt.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34668599115-1/jobs/103485593182/cache-receipt.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34668599115-1/jobs/103485593321/cache-receipt.json",
+        "Integration (@tests/hash-playwright)": "runs/34668599115-1/jobs/103485593250/cache-receipt.json"
+      },
+      "jobs": "runs/34668599115-1/jobs.json",
+      "run": "runs/34668599115-1/run.json",
+      "runner_details": {
+        "Integration (@rust/hash-graph-benches)": "runs/34668599115-1/jobs/103485593175/runner-details.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34668599115-1/jobs/103485593180/runner-details.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34668599115-1/jobs/103485593182/runner-details.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34668599115-1/jobs/103485593321/runner-details.json",
+        "Integration (@tests/hash-playwright)": "runs/34668599115-1/jobs/103485593250/runner-details.json"
+      },
+      "scope": "complete-test",
+      "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+      "task_timings": {
+        "Integration (@rust/hash-graph-benches)": "runs/34668599115-1/jobs/103485593175/task-timings.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34668599115-1/jobs/103485593180/task-timings.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34668599115-1/jobs/103485593182/task-timings.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34668599115-1/jobs/103485593321/task-timings.json",
+        "Integration (@tests/hash-playwright)": "runs/34668599115-1/jobs/103485593250/task-timings.json"
+      },
+      "test_results": {
+        "Integration (@rust/hash-graph-benches)": "runs/34668599115-1/jobs/103485593175/results.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34668599115-1/jobs/103485593180/results.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34668599115-1/jobs/103485593182/results.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34668599115-1/jobs/103485593321/results.json",
+        "Integration (@tests/hash-playwright)": "runs/34668599115-1/jobs/103485593250/results.json"
+      },
+      "variant": "candidate",
+      "workflow_sha": "cce13303c9e9b1e17063786d5eeff609ab2b47f0"
+    },
+    {
+      "cache_condition": "cold",
+      "cache_evidence": {
+        "Integration (@rust/hash-graph-benches)": "runs/34670121057-1/jobs/103489999841/raw-cache.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34670121057-1/jobs/103489999827/raw-cache.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34670121057-1/jobs/103489999853/raw-cache.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34670121057-1/jobs/103489999838/raw-cache.json",
+        "Integration (@tests/hash-playwright)": "runs/34670121057-1/jobs/103489999834/raw-cache.json"
+      },
+      "cache_inventory": "runs/34670121057-1/cache-inventory.json",
+      "graph_cache_receipts": {
+        "Integration (@rust/hash-graph-benches)": "runs/34670121057-1/jobs/103489999841/cache-receipt.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34670121057-1/jobs/103489999827/cache-receipt.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34670121057-1/jobs/103489999853/cache-receipt.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34670121057-1/jobs/103489999838/cache-receipt.json",
+        "Integration (@tests/hash-playwright)": "runs/34670121057-1/jobs/103489999834/cache-receipt.json"
+      },
+      "jobs": "runs/34670121057-1/jobs.json",
+      "run": "runs/34670121057-1/run.json",
+      "runner_details": {
+        "Integration (@rust/hash-graph-benches)": "runs/34670121057-1/jobs/103489999841/runner-details.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34670121057-1/jobs/103489999827/runner-details.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34670121057-1/jobs/103489999853/runner-details.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34670121057-1/jobs/103489999838/runner-details.json",
+        "Integration (@tests/hash-playwright)": "runs/34670121057-1/jobs/103489999834/runner-details.json"
+      },
+      "scope": "complete-test",
+      "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+      "task_timings": {
+        "Integration (@rust/hash-graph-benches)": "runs/34670121057-1/jobs/103489999841/task-timings.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34670121057-1/jobs/103489999827/task-timings.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34670121057-1/jobs/103489999853/task-timings.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34670121057-1/jobs/103489999838/task-timings.json",
+        "Integration (@tests/hash-playwright)": "runs/34670121057-1/jobs/103489999834/task-timings.json"
+      },
+      "test_results": {
+        "Integration (@rust/hash-graph-benches)": "runs/34670121057-1/jobs/103489999841/results.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34670121057-1/jobs/103489999827/results.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34670121057-1/jobs/103489999853/results.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34670121057-1/jobs/103489999838/results.json",
+        "Integration (@tests/hash-playwright)": "runs/34670121057-1/jobs/103489999834/results.json"
+      },
+      "variant": "candidate",
+      "workflow_sha": "6032f1c90c1805e1ef30be286c3163e9f8431861"
+    },
+    {
+      "cache_condition": "warm",
+      "cache_evidence": {
+        "Integration (@rust/hash-graph-benches)": "runs/34671885632-1/jobs/103494749972/raw-cache.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34671885632-1/jobs/103494749901/raw-cache.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34671885632-1/jobs/103494750012/raw-cache.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34671885632-1/jobs/103494749977/raw-cache.json",
+        "Integration (@tests/hash-playwright)": "runs/34671885632-1/jobs/103494749942/raw-cache.json"
+      },
+      "cache_inventory": "runs/34671885632-1/cache-inventory.json",
+      "graph_cache_receipts": {
+        "Integration (@rust/hash-graph-benches)": "runs/34671885632-1/jobs/103494749972/cache-receipt.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34671885632-1/jobs/103494749901/cache-receipt.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34671885632-1/jobs/103494750012/cache-receipt.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34671885632-1/jobs/103494749977/cache-receipt.json",
+        "Integration (@tests/hash-playwright)": "runs/34671885632-1/jobs/103494749942/cache-receipt.json"
+      },
+      "jobs": "runs/34671885632-1/jobs.json",
+      "run": "runs/34671885632-1/run.json",
+      "runner_details": {
+        "Integration (@rust/hash-graph-benches)": "runs/34671885632-1/jobs/103494749972/runner-details.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34671885632-1/jobs/103494749901/runner-details.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34671885632-1/jobs/103494750012/runner-details.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34671885632-1/jobs/103494749977/runner-details.json",
+        "Integration (@tests/hash-playwright)": "runs/34671885632-1/jobs/103494749942/runner-details.json"
+      },
+      "scope": "complete-test",
+      "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+      "task_timings": {
+        "Integration (@rust/hash-graph-benches)": "runs/34671885632-1/jobs/103494749972/task-timings.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34671885632-1/jobs/103494749901/task-timings.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34671885632-1/jobs/103494750012/task-timings.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34671885632-1/jobs/103494749977/task-timings.json",
+        "Integration (@tests/hash-playwright)": "runs/34671885632-1/jobs/103494749942/task-timings.json"
+      },
+      "test_results": {
+        "Integration (@rust/hash-graph-benches)": "runs/34671885632-1/jobs/103494749972/results.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34671885632-1/jobs/103494749901/results.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34671885632-1/jobs/103494750012/results.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34671885632-1/jobs/103494749977/results.json",
+        "Integration (@tests/hash-playwright)": "runs/34671885632-1/jobs/103494749942/results.json"
+      },
+      "variant": "candidate",
+      "workflow_sha": "17133acd8c6ad36c42fdd037e3c70119dc98b428"
+    },
+    {
+      "cache_condition": "cold",
+      "cache_evidence": {
+        "Integration (@rust/hash-graph-benches)": "runs/34673120179-1/jobs/103498325117/raw-cache.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34673120179-1/jobs/103498325175/raw-cache.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34673120179-1/jobs/103498325133/raw-cache.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34673120179-1/jobs/103498325084/raw-cache.json",
+        "Integration (@tests/hash-playwright)": "runs/34673120179-1/jobs/103498325108/raw-cache.json"
+      },
+      "graph_cache_receipts": {},
+      "jobs": "runs/34673120179-1/jobs.json",
+      "run": "runs/34673120179-1/run.json",
+      "runner_details": {
+        "Integration (@rust/hash-graph-benches)": "runs/34673120179-1/jobs/103498325117/runner-details.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34673120179-1/jobs/103498325175/runner-details.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34673120179-1/jobs/103498325133/runner-details.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34673120179-1/jobs/103498325084/runner-details.json",
+        "Integration (@tests/hash-playwright)": "runs/34673120179-1/jobs/103498325108/runner-details.json"
+      },
+      "scope": "complete-test",
+      "source_sha": "6c9b16b02a5393ae982cec33784e151c3aeed519",
+      "task_timings": {
+        "Integration (@rust/hash-graph-benches)": "runs/34673120179-1/jobs/103498325117/task-timings.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34673120179-1/jobs/103498325175/task-timings.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34673120179-1/jobs/103498325133/task-timings.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34673120179-1/jobs/103498325084/task-timings.json",
+        "Integration (@tests/hash-playwright)": "runs/34673120179-1/jobs/103498325108/task-timings.json"
+      },
+      "test_results": {
+        "Integration (@rust/hash-graph-benches)": "runs/34673120179-1/jobs/103498325117/results.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34673120179-1/jobs/103498325175/results.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34673120179-1/jobs/103498325133/results.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34673120179-1/jobs/103498325084/results.json",
+        "Integration (@tests/hash-playwright)": "runs/34673120179-1/jobs/103498325108/results.json"
+      },
+      "variant": "baseline",
+      "workflow_sha": "dda78dc7d6e8b0833bb5583908d5c88c0d6770cb"
+    },
+    {
+      "cache_condition": "warm",
+      "cache_evidence": {
+        "Integration (@rust/hash-graph-benches)": "runs/34674881183-1/jobs/103502942061/raw-cache.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34674881183-1/jobs/103502942052/raw-cache.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34674881183-1/jobs/103502942050/raw-cache.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34674881183-1/jobs/103502942203/raw-cache.json",
+        "Integration (@tests/hash-playwright)": "runs/34674881183-1/jobs/103502942125/raw-cache.json"
+      },
+      "graph_cache_receipts": {},
+      "jobs": "runs/34674881183-1/jobs.json",
+      "run": "runs/34674881183-1/run.json",
+      "runner_details": {
+        "Integration (@rust/hash-graph-benches)": "runs/34674881183-1/jobs/103502942061/runner-details.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34674881183-1/jobs/103502942052/runner-details.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34674881183-1/jobs/103502942050/runner-details.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34674881183-1/jobs/103502942203/runner-details.json",
+        "Integration (@tests/hash-playwright)": "runs/34674881183-1/jobs/103502942125/runner-details.json"
+      },
+      "scope": "complete-test",
+      "source_sha": "6c9b16b02a5393ae982cec33784e151c3aeed519",
+      "task_timings": {
+        "Integration (@rust/hash-graph-benches)": "runs/34674881183-1/jobs/103502942061/task-timings.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34674881183-1/jobs/103502942052/task-timings.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34674881183-1/jobs/103502942050/task-timings.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34674881183-1/jobs/103502942203/task-timings.json",
+        "Integration (@tests/hash-playwright)": "runs/34674881183-1/jobs/103502942125/task-timings.json"
+      },
+      "test_results": {
+        "Integration (@rust/hash-graph-benches)": "runs/34674881183-1/jobs/103502942061/results.json",
+        "Integration (@rust/hash-graph-http-tests)": "runs/34674881183-1/jobs/103502942052/results.json",
+        "Integration (@rust/hash-graph-integration)": "runs/34674881183-1/jobs/103502942050/results.json",
+        "Integration (@tests/hash-backend-integration)": "runs/34674881183-1/jobs/103502942203/results.json",
+        "Integration (@tests/hash-playwright)": "runs/34674881183-1/jobs/103502942125/results.json"
+      },
+      "variant": "baseline",
+      "workflow_sha": "25b7b41df33c205502d2759cfb43819735cceacc"
+    }
+  ]
+}

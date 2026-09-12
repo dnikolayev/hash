@@ -1,0 +1,236 @@
+{
+  "attempt": 1,
+  "complete_workflow_log_archive": {
+    "bytes": 21446154,
+    "sha256": "17c093aa5f9779224c6154b4d4e0b3cfa0628f39689e05a0945c6278e3cdd4af",
+    "url": "https://api.github.com/repos/dnikolayev/hash/actions/runs/34666896025/logs"
+  },
+  "evidence_analyzer": {
+    "path": "repro/integration-build-timings.py",
+    "sha256": "69ac2df5e20b04ccf2c108b922a2880a35b3674b22e2007d368365bd93a36752",
+    "source_url": "https://github.com/dnikolayev/hash/blob/6c9b16b02a5393ae982cec33784e151c3aeed519/.github/scripts/integration-build-timings.py"
+  },
+  "jobs_api_url": "https://api.github.com/repos/dnikolayev/hash/actions/runs/34666896025/attempts/1/jobs?per_page=100",
+  "original_api_sha256": {
+    "jobs": "cb0f42814fcfddc6a5264a489af41bff09bab2ae7569d89ef9eab68ad029d28e",
+    "run": "fa3fb57f504ae553eef8886cc7de4382e4818c26ab5b94c5252ed89e66946454"
+  },
+  "original_baseline_sha": "67f60d5446ed3224609161f938e1b36bc9d62f89",
+  "parser_source_url": "https://github.com/dnikolayev/hash/blob/6c9b16b02a5393ae982cec33784e151c3aeed519/.github/scripts/integration-build-timings.py",
+  "projection": [
+    "API run/job identity, conclusions and raw step timestamps retained; optional author/runner inventory omitted.",
+    "Native summary identifiers, execution commands, timings and cache status retained; per-task shell commands omitted.",
+    "Hosted runner/tool/CPU metadata retained except the runner name; no compiler environment values are included.",
+    "Receipt provenance paths are bundle-relative. Original hashes and public retrieval URLs preserve source references."
+  ],
+  "run_api_url": "https://api.github.com/repos/dnikolayev/hash/actions/runs/34666896025/attempts/1",
+  "run_id": 34666896025,
+  "run_url": "https://github.com/dnikolayev/hash/actions/runs/34666896025",
+  "source_artifacts": [
+    {
+      "artifact": {
+        "archive_download_url": "https://api.github.com/repos/dnikolayev/hash/actions/artifacts/10290655115/zip",
+        "created_at": "2026-09-12T02:32:09Z",
+        "digest": "sha256:12b19d1c7d2d7280f3ba39f2eb9a5b983aa3219f7498e85bdc2d8cb732895ca0",
+        "expires_at": "2026-12-11T02:09:59Z",
+        "id": 10290655115,
+        "name": "rust.hash-graph-benches_logs",
+        "size_in_bytes": 6872
+      },
+      "artifact_members": {
+        "benchmark-environment.json": {
+          "bytes": 1953,
+          "sha256": "40f8a3ec5a7cfd28e8264dc94d1b0117ef33f70adfac6b5403514d13febac6be"
+        },
+        "graph-cache-receipt.json": {
+          "bytes": 235,
+          "sha256": "a794db824d4ad0d497f1032921fcfd60d64fec1dd1e20e64eea1bd761a36667d"
+        },
+        "graph-graph-build-inputs.json": {
+          "bytes": 610,
+          "sha256": "7373603b4286192f0c6f2a0039264963be62933187b963b6ea80f2693478407e"
+        },
+        "graph-manifest.json": {
+          "bytes": 169,
+          "sha256": "8b908fa58fbb29a76c9b3521590e4f191d91aa12d88c6ae3d29844853ff38afb"
+        },
+        "turbo-task-timings.json": {
+          "bytes": 2059,
+          "sha256": "ec8b3f3577b0dbdf6bd887a25d6003c880e1d73f3981631c7a52278570c0d8ec"
+        }
+      },
+      "job_id": 103480736009,
+      "job_log_sha256": "9913f476b4befe613087a7538e8b356638ae2b6b2853b0f820a8c9769a2a2b07",
+      "job_log_url": "https://api.github.com/repos/dnikolayev/hash/actions/jobs/103480736009/logs",
+      "job_name": "Integration (@rust/hash-graph-benches)",
+      "job_url": "https://github.com/dnikolayev/hash/actions/runs/34666896025/job/103480736009"
+    },
+    {
+      "artifact": {
+        "archive_download_url": "https://api.github.com/repos/dnikolayev/hash/actions/artifacts/10289144441/zip",
+        "created_at": "2026-09-12T02:25:10Z",
+        "digest": "sha256:d066e8d8d8072bd177c703d392d08dd36e89b4e87b319f5207cb350f0c56fb93",
+        "expires_at": "2026-12-11T02:09:59Z",
+        "id": 10289144441,
+        "name": "rust.hash-graph-http-tests_logs",
+        "size_in_bytes": 13945
+      },
+      "artifact_members": {
+        "benchmark-environment.json": {
+          "bytes": 1953,
+          "sha256": "8dcc7ebb7dfe789bb5a43cb6882d8f73f7588c16398f7ea3efb37f149ab038b2"
+        },
+        "graph-cache-receipt.json": {
+          "bytes": 235,
+          "sha256": "d5b2d34d6803bc4907c1c664ae202be817633779c1237698a299b1f4a189c1a6"
+        },
+        "graph-graph-build-inputs.json": {
+          "bytes": 610,
+          "sha256": "1d3f402e56884977b78836cbd5f36ad8f96589a298108122be79491b0bed6f39"
+        },
+        "graph-manifest.json": {
+          "bytes": 169,
+          "sha256": "1675710b592fb1044cca267ec4d0f86f5a95bb7b03fdbf2f9cca1100333feefe"
+        },
+        "turbo-task-timings.json": {
+          "bytes": 2055,
+          "sha256": "c1e31ca153a7d00dc8480dac3486f4a3f5d81c02f486fe6c40afdcd54b2ed1d8"
+        }
+      },
+      "job_id": 103480736025,
+      "job_log_sha256": "3df22381536136d78f72f11d10a250c1eb775e66ae7211f5196f1eeb96246f09",
+      "job_log_url": "https://api.github.com/repos/dnikolayev/hash/actions/jobs/103480736025/logs",
+      "job_name": "Integration (@rust/hash-graph-http-tests)",
+      "job_url": "https://github.com/dnikolayev/hash/actions/runs/34666896025/job/103480736025"
+    },
+    {
+      "artifact": {
+        "archive_download_url": "https://api.github.com/repos/dnikolayev/hash/actions/artifacts/10288963655/zip",
+        "created_at": "2026-09-12T02:25:23Z",
+        "digest": "sha256:a3155b6b2f016af25eefbcf4a124c676c22204a3f20e927b87094698fff3abd9",
+        "expires_at": "2026-12-11T02:09:59Z",
+        "id": 10288963655,
+        "name": "rust.hash-graph-integration_logs",
+        "size_in_bytes": 6681
+      },
+      "artifact_members": {
+        "benchmark-environment.json": {
+          "bytes": 2102,
+          "sha256": "73069950a27949b5d5f28611a73a48f166fb97a531793b31cb01fb273ddec663"
+        },
+        "graph-cache-receipt.json": {
+          "bytes": 235,
+          "sha256": "a040f2d7ab384d1348b447f0ba5fea49b6072624adab3d01a11ad12341d96e38"
+        },
+        "graph-graph-build-inputs.json": {
+          "bytes": 610,
+          "sha256": "7d387de09de0c5ddfe044d15c2f74ae4570f9f8539c5bd0dfb569eb05b39db48"
+        },
+        "graph-manifest.json": {
+          "bytes": 169,
+          "sha256": "209c002a3eb29e31227e54cfbe373fb4c21df44152449ccddbe17c893c18c6d3"
+        },
+        "turbo-task-timings.json": {
+          "bytes": 1318,
+          "sha256": "df17e580d120508025dc6d65aea8c3594d2ca285b34e5a9f17243a4814f17f56"
+        }
+      },
+      "job_id": 103480736039,
+      "job_log_sha256": "cfe3ae805b9008fa674b210fa977a49b24e7791f8744c403396ecf6168ccf5b1",
+      "job_log_url": "https://api.github.com/repos/dnikolayev/hash/actions/jobs/103480736039/logs",
+      "job_name": "Integration (@rust/hash-graph-integration)",
+      "job_url": "https://github.com/dnikolayev/hash/actions/runs/34666896025/job/103480736039"
+    },
+    {
+      "artifact": {
+        "archive_download_url": "https://api.github.com/repos/dnikolayev/hash/actions/artifacts/10289704311/zip",
+        "created_at": "2026-09-12T02:35:00Z",
+        "digest": "sha256:fd82b3ba72f9fd03eec7a2eb978a09409237f4c39ad7a4eb21a613baacac6d43",
+        "expires_at": "2026-12-11T02:09:59Z",
+        "id": 10289704311,
+        "name": "tests.hash-backend-integration_logs",
+        "size_in_bytes": 251334
+      },
+      "artifact_members": {
+        "benchmark-environment.json": {
+          "bytes": 1953,
+          "sha256": "4db28f98c56e141338eb6f9836790b98afd5e3eb190073312155197c00add26d"
+        },
+        "graph-cache-receipt.json": {
+          "bytes": 239,
+          "sha256": "09caa28c10f687136301d7e8700d9ff1981f9febc724aaa20a043013bfad4534"
+        },
+        "graph-graph-build-inputs.json": {
+          "bytes": 610,
+          "sha256": "1d3f402e56884977b78836cbd5f36ad8f96589a298108122be79491b0bed6f39"
+        },
+        "graph-manifest.json": {
+          "bytes": 169,
+          "sha256": "ff55368838841c95bccd0fe15c684a970e2b4c3ab372da1946c38c5e3a5cb369"
+        },
+        "turbo-task-timings.json": {
+          "bytes": 15176,
+          "sha256": "c3a39963297bfacd8b9abea2db07dd69356d5cfa26148d950f8e5b39a5f3deff"
+        }
+      },
+      "job_id": 103480736034,
+      "job_log_sha256": "277d2f12daf2121b9f160c985364f8834f5e27d5fbdb800f0280fbbc914d6fb1",
+      "job_log_url": "https://api.github.com/repos/dnikolayev/hash/actions/jobs/103480736034/logs",
+      "job_name": "Integration (@tests/hash-backend-integration)",
+      "job_url": "https://github.com/dnikolayev/hash/actions/runs/34666896025/job/103480736034"
+    },
+    {
+      "artifact": {
+        "archive_download_url": "https://api.github.com/repos/dnikolayev/hash/actions/artifacts/10290495220/zip",
+        "created_at": "2026-09-12T02:43:14Z",
+        "digest": "sha256:e8a3ebcef3f04f3cb48e614f01e472113fc995c05762c9a610ff335c6cb54d54",
+        "expires_at": "2026-12-11T02:09:59Z",
+        "id": 10290495220,
+        "name": "tests.hash-playwright_logs",
+        "size_in_bytes": 106721
+      },
+      "artifact_members": {
+        "benchmark-environment.json": {
+          "bytes": 1953,
+          "sha256": "c6e4ddbc4d81b40319c227d393c3ca72c48e06f4290f7987d0244385f804cb7d"
+        },
+        "graph-cache-receipt.json": {
+          "bytes": 239,
+          "sha256": "61e4b2e6d7679f4a303ebeb768a8fb9b170f03f48660a04150005da35e9ff528"
+        },
+        "graph-graph-build-inputs.json": {
+          "bytes": 610,
+          "sha256": "1d3f402e56884977b78836cbd5f36ad8f96589a298108122be79491b0bed6f39"
+        },
+        "graph-manifest.json": {
+          "bytes": 169,
+          "sha256": "a6f47ca87685d1b0ed966f3d0d66b939d2b4eb80941d522fe086b434e77ab21d"
+        },
+        "turbo-task-timings.json": {
+          "bytes": 11730,
+          "sha256": "1be507c710890ffb0360d9b5dbd29f79b2327159d338dd0e49e9f4aeb9d9f8ec"
+        }
+      },
+      "job_id": 103480736033,
+      "job_log_sha256": "65afa19c8c12226cace3b4025af72a1f5c08d3974b8f80cf80683b6a428d4f5d",
+      "job_log_url": "https://api.github.com/repos/dnikolayev/hash/actions/jobs/103480736033/logs",
+      "job_name": "Integration (@tests/hash-playwright)",
+      "job_url": "https://github.com/dnikolayev/hash/actions/runs/34666896025/job/103480736033"
+    }
+  ],
+  "source_files_sha256": {
+    ".github/actions/graph-build-cache/cache_line_probe.rs": "da47381c06ee63327ab9936b0b4e375f558a4aa33f41e5c6873a4f0ae9389458",
+    ".github/actions/graph-build-cache/graph_build_cache.py": "ff67290e468d40178a6cc6cbc33ec80aad94d1117fa533f9bc7fbd5538203d55"
+  },
+  "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+  "source_snapshot_receipt_sha256": "599574030265032a150cd15f6c28efea2e4a1b92473ee3889e172d8a4884d02f",
+  "validation_only": false,
+  "workflow_generator": {
+    "path": "repro/generate-958a847d4552a27a6ec76cbbf2a5c0fde4d0240f114855d590659d621e4c37df.py",
+    "sha256": "958a847d4552a27a6ec76cbbf2a5c0fde4d0240f114855d590659d621e4c37df"
+  },
+  "workflow_path": "runs/34666896025-1/executed-workflow.yml",
+  "workflow_sha": "5a5adc8597c4c342aefab4f680f9e424edf8bac1",
+  "workflow_sha256": "054ea3e2d7df7fed51a81954b1ac4b0ab2ce6ad49638313902092f74fe2bb01f",
+  "workflow_url": "https://github.com/dnikolayev/hash/blob/5a5adc8597c4c342aefab4f680f9e424edf8bac1/.github/workflows/integration-build-benchmark.yml"
+}

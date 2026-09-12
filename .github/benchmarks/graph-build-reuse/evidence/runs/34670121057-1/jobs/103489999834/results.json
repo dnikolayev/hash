@@ -1,0 +1,262 @@
+{
+  "actual_cache_state": "miss",
+  "binary_sha256": "6092d25d8116e5663c1f8486af2ec36e26eb38c41a3db37dd86254fda3a282c9",
+  "binary_size_bytes": 2726582744,
+  "cache_evidence_issues": [],
+  "cache_modes": [
+    "1"
+  ],
+  "cache_saved": false,
+  "conclusion": "success",
+  "cpu_cache_line_bytes": 64,
+  "evidence_issues": [],
+  "graph_cargo_invocations": [
+    {
+      "cache_log_status": "bypass; current execution",
+      "compiling_lines": 778,
+      "delivery": "current step output",
+      "finished_line": 5747,
+      "group_line": 4830,
+      "lock_notice_lines": [],
+      "lock_wait_seconds": null,
+      "profile": "dev",
+      "reported_duration": "7m 12s",
+      "reported_seconds": 432.0
+    }
+  ],
+  "helper_lock_phase_seconds": [
+    0.0,
+    0.0,
+    149.91
+  ],
+  "helper_notes": [
+    "Lock phase measures acquisition overhead and waiting; buffered timestamps are not execution times.",
+    "Native Turbo cache MISS and disabled graph task caching establish current graph executions."
+  ],
+  "helper_phases": [
+    {
+      "buffered_background_dump": false,
+      "key": "",
+      "line": 2317,
+      "phase": "cpu-probe",
+      "seconds": 0.085,
+      "status": "ready"
+    },
+    {
+      "buffered_background_dump": false,
+      "key": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+      "line": 2318,
+      "phase": "prepare",
+      "seconds": 50.805,
+      "status": "ready"
+    },
+    {
+      "buffered_background_dump": false,
+      "key": "",
+      "line": 4832,
+      "phase": "lock",
+      "seconds": 0.0,
+      "status": "acquired"
+    },
+    {
+      "buffered_background_dump": false,
+      "key": "",
+      "line": 4833,
+      "phase": "cpu-probe",
+      "seconds": 0.209,
+      "status": "ready"
+    },
+    {
+      "buffered_background_dump": false,
+      "key": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+      "line": 4834,
+      "phase": "prepare",
+      "seconds": 23.778,
+      "status": "ready"
+    },
+    {
+      "buffered_background_dump": false,
+      "key": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+      "line": 4835,
+      "phase": "restore",
+      "seconds": 0.0,
+      "status": "miss"
+    },
+    {
+      "buffered_background_dump": false,
+      "key": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+      "line": 5750,
+      "phase": "build",
+      "seconds": 434.205,
+      "status": "success"
+    },
+    {
+      "buffered_background_dump": false,
+      "key": "",
+      "line": 5751,
+      "phase": "cpu-probe",
+      "seconds": 0.093,
+      "status": "ready"
+    },
+    {
+      "buffered_background_dump": false,
+      "key": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+      "line": 5752,
+      "phase": "store",
+      "seconds": 34.681,
+      "status": "ready"
+    },
+    {
+      "buffered_background_dump": false,
+      "key": "",
+      "line": 5768,
+      "phase": "lock",
+      "seconds": 0.0,
+      "status": "acquired"
+    },
+    {
+      "buffered_background_dump": false,
+      "key": "",
+      "line": 5769,
+      "phase": "cpu-probe",
+      "seconds": 0.311,
+      "status": "ready"
+    },
+    {
+      "buffered_background_dump": false,
+      "key": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+      "line": 5770,
+      "phase": "prepare",
+      "seconds": 139.323,
+      "status": "ready"
+    },
+    {
+      "buffered_background_dump": false,
+      "key": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+      "line": 5771,
+      "phase": "restore",
+      "seconds": 10.73,
+      "status": "hit"
+    },
+    {
+      "buffered_background_dump": true,
+      "key": "",
+      "line": 44562,
+      "phase": "lock",
+      "seconds": 149.91,
+      "status": "acquired"
+    },
+    {
+      "buffered_background_dump": true,
+      "key": "",
+      "line": 45113,
+      "phase": "cpu-probe",
+      "seconds": 0.186,
+      "status": "ready"
+    },
+    {
+      "buffered_background_dump": true,
+      "key": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+      "line": 45115,
+      "phase": "prepare",
+      "seconds": 73.05,
+      "status": "ready"
+    },
+    {
+      "buffered_background_dump": true,
+      "key": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+      "line": 45139,
+      "phase": "restore",
+      "seconds": 6.038,
+      "status": "hit"
+    }
+  ],
+  "html_url": "https://github.com/dnikolayev/hash/actions/runs/34670121057/job/103489999834",
+  "id": 103489999834,
+  "initial_graph_cargo_invocations": [
+    {
+      "cache_log_status": "bypass; current execution",
+      "compiling_lines": 778,
+      "delivery": "current step output",
+      "finished_line": 5747,
+      "group_line": 4830,
+      "lock_notice_lines": [],
+      "lock_wait_seconds": null,
+      "profile": "dev",
+      "reported_duration": "7m 12s",
+      "reported_seconds": 432.0
+    }
+  ],
+  "name": "Integration (@tests/hash-playwright)",
+  "notes": [
+    "Cargo durations are reported by Cargo and may include lock waits; lock-only durations are unavailable.",
+    "Buffered graph output uses Cargo durations, never display-timestamp subtraction.",
+    "Test output is restricted to the selected Turbo task; replayed prerequisite output is excluded."
+  ],
+  "orchestration_scheduling": {
+    "delay_seconds": 3.0,
+    "dependency_jobs": [
+      "setup",
+      "sccache-credentials"
+    ],
+    "note": "Readiness to job start includes orchestration and scheduling; it is not pure runner hardware queue time.",
+    "ready_at": "2026-09-12T03:22:38Z",
+    "started_at": "2026-09-12T03:22:41Z"
+  },
+  "provenance": {
+    "attempt": 1,
+    "job_id": 103489999834,
+    "job_log_sha256": "3fb85747ea24ce18529a588fd4522606c05fa5ebacb96e62749b0df7a121aa08",
+    "job_log_url": "https://api.github.com/repos/dnikolayev/hash/actions/jobs/103489999834/logs",
+    "run_id": 34670121057,
+    "source_receipt_sha256": "965c04c0616527cee1d47c144b0c19b95c8e3391fa7d957a6071b97367dfd8a1"
+  },
+  "selected_test_count_issues": [],
+  "selected_test_counts": {
+    "playwright": {
+      "passed": 32,
+      "skipped": 8
+    }
+  },
+  "service_and_test_steps": [
+    {
+      "completed_at": "2026-09-12T03:27:46Z",
+      "conclusion": "success",
+      "name": "Launch external services",
+      "number": 17,
+      "started_at": "2026-09-12T03:26:47Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-09-12T03:47:23Z",
+      "conclusion": "success",
+      "name": "Start background tasks",
+      "number": 18,
+      "started_at": "2026-09-12T03:27:46Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-09-12T03:53:49Z",
+      "conclusion": "success",
+      "name": "Run tests",
+      "number": 23,
+      "started_at": "2026-09-12T03:47:29Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-09-12T03:54:06Z",
+      "conclusion": "success",
+      "name": "Show background tasks logs",
+      "number": 27,
+      "started_at": "2026-09-12T03:54:05Z",
+      "status": "completed"
+    }
+  ],
+  "status": "completed",
+  "task_metrics_seconds": {
+    "initial graph compile task": 494.119,
+    "selected integration test task": 302.781
+  },
+  "task_timing_issues": [],
+  "wall_seconds": 1892.0
+}

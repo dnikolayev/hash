@@ -1,0 +1,121 @@
+{
+  "GRAPH_CACHE_HIT": "true",
+  "GRAPH_PREPARED_KEY": "graph-build-v1-463231913c6bf8b19cd86c1a65bc2788baa16beb2089bdad47d83621f9b4da95",
+  "GRAPH_RECHECK_HIT": "",
+  "GRAPH_UPLOAD_VALID": "true",
+  "actions_evidence": {
+    "key": "graph-build-benchmark-20260912-v7-3-graph-build-v1-463231913c6bf8b19cd86c1a65bc2788baa16beb2089bdad47d83621f9b4da95",
+    "line": 2407,
+    "result": "hit"
+  },
+  "collection_issues": [],
+  "graph_binary_size_bytes": 2726586776,
+  "helper_acceptance_reason": "current matching-key initial restore hit without a build",
+  "helper_restore_accepted": true,
+  "initial_compile_cpu_probes": {
+    "count": 1,
+    "events": [
+      {
+        "key": "",
+        "line": 4612,
+        "phase": "cpu-probe",
+        "seconds": 0.085,
+        "status": "ready"
+      }
+    ],
+    "seconds": 0.085
+  },
+  "initial_compile_fingerprint_seconds": 23.529,
+  "initial_compile_helper_events": [
+    {
+      "key": "",
+      "line": 4611,
+      "phase": "lock",
+      "seconds": 0.0,
+      "status": "acquired"
+    },
+    {
+      "key": "",
+      "line": 4612,
+      "phase": "cpu-probe",
+      "seconds": 0.085,
+      "status": "ready"
+    },
+    {
+      "key": "graph-build-v1-463231913c6bf8b19cd86c1a65bc2788baa16beb2089bdad47d83621f9b4da95",
+      "line": 4613,
+      "phase": "prepare",
+      "seconds": 23.529,
+      "status": "ready"
+    },
+    {
+      "key": "graph-build-v1-463231913c6bf8b19cd86c1a65bc2788baa16beb2089bdad47d83621f9b4da95",
+      "line": 4614,
+      "phase": "restore",
+      "seconds": 1.934,
+      "status": "hit"
+    }
+  ],
+  "initial_compile_log_group_lines": [
+    4609,
+    4615
+  ],
+  "initial_compile_summary_id": "3JDBvu2wTQ9zAeAYTPlqvLpsBn7",
+  "job_total_native_probe_seconds": null,
+  "provenance": {
+    "attempt": 1,
+    "files": {
+      "environment": {
+        "original_sha256": "c32d9e84bbd4b0252ea34900cb1fb085d5c50a65a95c23d9e0db48e01b412cd0",
+        "path": "runs/34671885632-1/jobs/103494749972/runner-details.json",
+        "sha256": "97b56e903cf89414d3940d18f5aa73c7bd39b5d4fa8c923888f1eba2878633d2"
+      },
+      "log": {
+        "sha256": "c42114f8e1b07aa8a999d4e5eda26ede80ca08edc80f15a77176be007e9d5f58",
+        "url": "https://api.github.com/repos/dnikolayev/hash/actions/jobs/103494749972/logs"
+      },
+      "raw_receipt": {
+        "original_sha256": "fe36c1f81b6baf2b60c06bcae171037193a7b67b2155c2e850e040e0c1900987",
+        "path": "runs/34671885632-1/jobs/103494749972/raw-cache.json",
+        "sha256": "fe36c1f81b6baf2b60c06bcae171037193a7b67b2155c2e850e040e0c1900987"
+      },
+      "task_timings": {
+        "original_sha256": "c7e6693fc3873c9c2e15624a998a0bf538ad06934f035bac46e7c6b95dc48216",
+        "path": "runs/34671885632-1/jobs/103494749972/task-timings.json",
+        "sha256": "9d9686af37c47905cdcec3bd78992c101cc1dc6d30b5087a46d1bc78b50e4b6c"
+      }
+    },
+    "job_id": 103494749972,
+    "job_name": "Integration (@rust/hash-graph-benches)",
+    "run_id": 34671885632,
+    "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+    "workflow_sha": "17133acd8c6ad36c42fdd037e3c70119dc98b428"
+  },
+  "timing_notes": [
+    "Monotonic helper durations are retained; buffered display timestamps are not durations.",
+    "Initial compile prepare measures fingerprint work. Workflow prepare additionally includes lock/patch/write work.",
+    "Store includes another fingerprint and payload copy/link. CPU probe counts cover only the named verified contexts; absent phase events are unavailable, not zero."
+  ],
+  "verified_context_cpu_probe_count": 2,
+  "verified_context_cpu_probe_seconds": 0.22699999999999998,
+  "workflow_prepare_cpu_probes": {
+    "count": 1,
+    "events": [
+      {
+        "key": "",
+        "line": 2228,
+        "phase": "cpu-probe",
+        "seconds": 0.142,
+        "status": "ready"
+      }
+    ],
+    "seconds": 0.142
+  },
+  "workflow_prepare_event": {
+    "key": "graph-build-v1-463231913c6bf8b19cd86c1a65bc2788baa16beb2089bdad47d83621f9b4da95",
+    "line": 2229,
+    "phase": "prepare",
+    "seconds": 51.114,
+    "status": "ready"
+  }
+}

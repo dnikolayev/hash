@@ -1,0 +1,54 @@
+{
+  "auxiliary_run_duration_ms": 1518000,
+  "cache_inventory": "runs/34668599115-1/cache-inventory.json",
+  "conclusion": "success",
+  "created_at": "2026-09-12T02:46:53Z",
+  "evidence_issues": [],
+  "exclusions": [],
+  "executed_workflow_sha256": "054ea3e2d7df7fed51a81954b1ac4b0ab2ce6ad49638313902092f74fe2bb01f",
+  "failures": [],
+  "graph_cache_job_states": {
+    "Integration (@rust/hash-graph-benches)": "accepted-cache-hit",
+    "Integration (@rust/hash-graph-http-tests)": "accepted-cache-hit",
+    "Integration (@rust/hash-graph-integration)": "accepted-cache-hit",
+    "Integration (@tests/hash-backend-integration)": "accepted-cache-hit",
+    "Integration (@tests/hash-playwright)": "accepted-cache-hit"
+  },
+  "graph_cache_state": "accepted-cache-hit",
+  "jobs": 78,
+  "last_job": {
+    "completed_at": "2026-09-12T03:12:11Z",
+    "id": 103488664264,
+    "name": "Tests passed",
+    "started_at": "2026-09-12T03:12:07Z"
+  },
+  "last_substantive_job": {
+    "completed_at": "2026-09-12T03:12:05Z",
+    "id": 103485593250,
+    "name": "Integration (@tests/hash-playwright)",
+    "started_at": "2026-09-12T02:47:47Z"
+  },
+  "metrics_seconds": {
+    "workflow / aggregate jobs": 24075.0,
+    "workflow / initial wait": 3.0,
+    "workflow / wall": 1518.0
+  },
+  "planned_cache_condition": "warm",
+  "run_id": 34668599115,
+  "run_started_at": "2026-09-12T02:46:53Z",
+  "sample": "2",
+  "scope": "complete-test",
+  "selected_job_receipts": [
+    "runs/34668599115-1/jobs/103485593175/results.json",
+    "runs/34668599115-1/jobs/103485593180/results.json",
+    "runs/34668599115-1/jobs/103485593182/results.json",
+    "runs/34668599115-1/jobs/103485593321/results.json",
+    "runs/34668599115-1/jobs/103485593250/results.json"
+  ],
+  "skipped_jobs": 1,
+  "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+  "status": "completed",
+  "successful_jobs": 77,
+  "updated_at": "2026-09-12T03:12:11Z",
+  "workflow_sha": "cce13303c9e9b1e17063786d5eeff609ab2b47f0"
+}

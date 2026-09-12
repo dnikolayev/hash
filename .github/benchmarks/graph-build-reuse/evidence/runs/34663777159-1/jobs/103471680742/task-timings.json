@@ -1,0 +1,68 @@
+[
+  {
+    "execution": {
+      "command": "turbo run compile",
+      "endTime": 1789175965859,
+      "exitCode": 0,
+      "startTime": 1789175452461
+    },
+    "id": "3JCrbwAUTQM9G2wloRPDFI1F8QV",
+    "tasks": [
+      {
+        "execution": {
+          "endTime": 1789175965850,
+          "exitCode": 0,
+          "startTime": 1789175452600
+        },
+        "taskId": "@apps/hash-graph#compile",
+        "task_cache_enabled": false,
+        "turbo_cache_status": "MISS"
+      }
+    ],
+    "turboVersion": "2.10.12",
+    "version": "1"
+  },
+  {
+    "execution": {
+      "command": "turbo run test:integration --filter=@rust/hash-graph-benches",
+      "endTime": 1789176444414,
+      "exitCode": 0,
+      "startTime": 1789176030819
+    },
+    "id": "3JCsa5ScpopgAduiPHc1JQuxHzy",
+    "tasks": [
+      {
+        "execution": {
+          "endTime": 1789176057269,
+          "exitCode": 0,
+          "startTime": 1789176031053
+        },
+        "taskId": "@apps/hash-graph#compile",
+        "task_cache_enabled": false,
+        "turbo_cache_status": "MISS"
+      },
+      {
+        "execution": {
+          "endTime": 1789176057707,
+          "exitCode": 0,
+          "startTime": 1789176057269
+        },
+        "taskId": "@apps/hash-graph#start:test:healthcheck",
+        "task_cache_enabled": false,
+        "turbo_cache_status": "MISS"
+      },
+      {
+        "execution": {
+          "endTime": 1789176444414,
+          "exitCode": 0,
+          "startTime": 1789176057707
+        },
+        "taskId": "@rust/hash-graph-benches#test:integration",
+        "task_cache_enabled": true,
+        "turbo_cache_status": "MISS"
+      }
+    ],
+    "turboVersion": "2.10.12",
+    "version": "1"
+  }
+]

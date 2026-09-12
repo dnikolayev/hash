@@ -1,0 +1,138 @@
+{
+  "run_id": 34634365267,
+  "source_sha": "6c9b16b02a5393ae982cec33784e151c3aeed519",
+  "workflow_sha": "1e1f0f586c4795ac50e6987cec994708dbf3361d",
+  "status": "passed",
+  "accepted": true,
+  "performance_excluded": true,
+  "checks": {
+    "terminal_run_and_job_success": true,
+    "identity": true,
+    "workflow_and_script_bytes": true,
+    "all_collected_hashes": true,
+    "actual_actions_hit_and_original_payload": true,
+    "complete_probe_order": true,
+    "fresh-restoration": true,
+    "unrelated-documentation": true,
+    "direct-recovery": true,
+    "transitive-recovery": true,
+    "final-original-recovery": true,
+    "direct-compile-error-invalidation": true,
+    "transitive-compile-error-invalidation": true,
+    "positive_compile_and_store": true,
+    "exact_source_paths": true,
+    "exact_original_source_hashes": true,
+    "positive_source_hash": true,
+    "unrelated_edit_and_restoration": true,
+    "original_behavior_and_recovery_steps": true,
+    "termination_recovery_coverage_order": true,
+    "current_selected_tests_unchanged": true,
+    "positive_source_and_payload_present_after_behavior": true,
+    "final_original_source_payload_and_key": true,
+    "temporary_backup_removed": true,
+    "proof_passed": true
+  },
+  "job_id": 103378562633,
+  "selected_test_counts": {
+    "vitest_suites": [
+      {
+        "test_files": {
+          "total": 19,
+          "passed": 19
+        },
+        "tests": {
+          "total": 119,
+          "passed": 110,
+          "skipped": 9
+        }
+      },
+      {
+        "test_files": {
+          "total": 3,
+          "passed": 3
+        },
+        "tests": {
+          "total": 48,
+          "passed": 48
+        }
+      }
+    ]
+  },
+  "baseline_key": "graph-build-v1-96f3cd57bfdd34d2fbb8d1d993b03dfe39795b29500d81e89642cfe7b3f68e3a",
+  "baseline_binary_sha256": "4a00808110d07ec3e7a435e420a637e6794239bf0850c75f73069870d24bfb73",
+  "positive_key": "graph-build-v1-b495c75b69655a3128f94217adcefd6ad923bb1ff742fb4706574f323db1b870",
+  "positive_binary_sha256": "3dbc076861f10329bfcdf360898e40c95160407966bd1672b5527b9faf753b31",
+  "evidence_limits": [
+    "Filesystem assertions follow the exact checksum-verified proof script; no independent final runner filesystem snapshot was recorded.",
+    "Current task execution and selected test counts use the existing native-summary and log projections.",
+    "No performance or universal CPU portability claim."
+  ],
+  "provenance": {
+    "run_url": "https://github.com/dnikolayev/hash/actions/runs/34634365267",
+    "job_url": "https://github.com/dnikolayev/hash/actions/runs/34634365267/job/103378562633",
+    "workflow_source_url": "https://github.com/dnikolayev/hash/blob/1e1f0f586c4795ac50e6987cec994708dbf3361d/.github/workflows/integration-build-benchmark.yml",
+    "script_source_url": "https://github.com/dnikolayev/hash/blob/1e1f0f586c4795ac50e6987cec994708dbf3361d/.github/benchmarks/graph-build-reuse/graph_source_invalidation.py",
+    "executed_workflow_sha256": "399f73b80b411b7c6f1be7d685868a40c084b51f97abf9ab16507e1b8a6f965c",
+    "executed_script_sha256": "d088aebe5b325ed6232af7241655e4245620c92be24a0377291ff96f8063b971",
+    "source_receipt_sha256": "2b5635a038077a18cae268fa7bfd3674389dfcea66b2751ffe964eaf12f40172"
+  },
+  "previous_failed_attempt": {
+    "run_id": 34631383962,
+    "source_sha": "6c9b16b02a5393ae982cec33784e151c3aeed519",
+    "workflow_sha": "42f8fcb797832061e0a4e3e1cab892c3cfa38f2b",
+    "job_id": 103368764200,
+    "status": "failed",
+    "accepted": false,
+    "performance_excluded": true,
+    "checks": {
+      "executed_workflow_and_script_bytes": true,
+      "run_source_attempt_identity": true,
+      "download_hashes_match": true,
+      "actual_actions_hit_and_original_payload": true,
+      "completed_probe_order": true,
+      "fresh-restoration": true,
+      "unrelated-documentation": true,
+      "direct-recovery": true,
+      "transitive-recovery": true,
+      "direct-compile-error-invalidation": true,
+      "transitive-compile-error-invalidation": true,
+      "valid_transitive_build_and_store": true,
+      "exact_original_source_backups": true,
+      "positive_source_bytes": true,
+      "unrelated_document_bytes_and_restoration": true,
+      "normal_startup_tests_and_termination_passed": true,
+      "current_selected_tests_unchanged": true,
+      "original_sources_restored_before_failure": true,
+      "original_payload_manifest_restored_before_failure": true,
+      "final_original_key_recovery_passed": false,
+      "temporary_backup_removed": false
+    },
+    "not_completed": [
+      "final original-key helper restore",
+      "temporary backup removal",
+      "final recorded positive-source/payload checks after normal behavior"
+    ],
+    "evidence_limits": [
+      "Negative-probe live-binary absence and unchanged payload follow executed checksum-verified script assertions; these facts are not independent filesystem samples.",
+      "Original payload manifest is retained; live executable had been unlinked before the failed fingerprint assertion.",
+      "No cache-save action exists in this correctness workflow. Existing Actions cache is not replaced.",
+      "No performance or universal portability claim."
+    ],
+    "failure": {
+      "step": "Recover original graph source and executable",
+      "script_line": 173,
+      "assertion": "helper fingerprint after source/payload restoration must equal original key",
+      "known_sufficient_input_drift": "Codecov added CC_FORK/CC_BRANCH/CC_SHA/CC_PR, all matched by production BUILD_ENV",
+      "actual_recovery_fingerprint_components_retained": false
+    },
+    "provenance": {
+      "run_url": "https://github.com/dnikolayev/hash/actions/runs/34631383962",
+      "job_url": "https://github.com/dnikolayev/hash/actions/runs/34631383962/job/103368764200",
+      "workflow_source_url": "https://github.com/dnikolayev/hash/blob/42f8fcb797832061e0a4e3e1cab892c3cfa38f2b/.github/workflows/integration-build-benchmark.yml",
+      "script_source_url": "https://github.com/dnikolayev/hash/blob/42f8fcb797832061e0a4e3e1cab892c3cfa38f2b/.github/benchmarks/graph-build-reuse/graph_source_invalidation.py",
+      "executed_workflow_sha256": "ddef15d128d0be6388d83005841f1503ec8ecf8f3b246334e76884dfaa8d427c",
+      "executed_script_sha256": "d088aebe5b325ed6232af7241655e4245620c92be24a0377291ff96f8063b971",
+      "source_receipt_sha256": "607a6bb3fca2b3325f7f9e60b722c6c5104c0cb798618fbf1c4d2e011b78ea77"
+    }
+  }
+}

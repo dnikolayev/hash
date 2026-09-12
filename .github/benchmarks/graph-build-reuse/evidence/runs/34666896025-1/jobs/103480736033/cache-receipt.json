@@ -1,0 +1,149 @@
+{
+  "GRAPH_CACHE_HIT": "",
+  "GRAPH_PREPARED_KEY": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+  "GRAPH_RECHECK_HIT": "true",
+  "GRAPH_UPLOAD_VALID": "true",
+  "actions_evidence": {
+    "key": "graph-build-benchmark-20260912-v7-2-graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+    "line": 2490,
+    "result": "miss"
+  },
+  "collection_issues": [],
+  "graph_binary_size_bytes": 2726586840,
+  "helper_acceptance_reason": "Actions miss or helper miss/build/rejection before acceptance",
+  "helper_restore_accepted": false,
+  "initial_compile_cpu_probes": {
+    "count": 2,
+    "events": [
+      {
+        "key": "",
+        "line": 4818,
+        "phase": "cpu-probe",
+        "seconds": 0.24,
+        "status": "ready"
+      },
+      {
+        "key": "",
+        "line": 5736,
+        "phase": "cpu-probe",
+        "seconds": 0.1,
+        "status": "ready"
+      }
+    ],
+    "seconds": 0.33999999999999997
+  },
+  "initial_compile_fingerprint_seconds": 23.796,
+  "initial_compile_helper_events": [
+    {
+      "key": "",
+      "line": 4817,
+      "phase": "lock",
+      "seconds": 0.0,
+      "status": "acquired"
+    },
+    {
+      "key": "",
+      "line": 4818,
+      "phase": "cpu-probe",
+      "seconds": 0.24,
+      "status": "ready"
+    },
+    {
+      "key": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+      "line": 4819,
+      "phase": "prepare",
+      "seconds": 23.796,
+      "status": "ready"
+    },
+    {
+      "key": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+      "line": 4820,
+      "phase": "restore",
+      "seconds": 0.0,
+      "status": "miss"
+    },
+    {
+      "key": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+      "line": 5735,
+      "phase": "build",
+      "seconds": 453.457,
+      "status": "success"
+    },
+    {
+      "key": "",
+      "line": 5736,
+      "phase": "cpu-probe",
+      "seconds": 0.1,
+      "status": "ready"
+    },
+    {
+      "key": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+      "line": 5737,
+      "phase": "store",
+      "seconds": 35.366,
+      "status": "ready"
+    }
+  ],
+  "initial_compile_log_group_lines": [
+    4815,
+    5738
+  ],
+  "initial_compile_summary_id": "3JCzX7pCh8OXOYdj9w8uZ7BienX",
+  "job_total_native_probe_seconds": null,
+  "provenance": {
+    "attempt": 1,
+    "files": {
+      "environment": {
+        "original_sha256": "c6e4ddbc4d81b40319c227d393c3ca72c48e06f4290f7987d0244385f804cb7d",
+        "path": "runs/34666896025-1/jobs/103480736033/runner-details.json",
+        "sha256": "74556598466b320962f900f5a1e113300710642775c4334687050284fbeee53a"
+      },
+      "log": {
+        "sha256": "65afa19c8c12226cace3b4025af72a1f5c08d3974b8f80cf80683b6a428d4f5d",
+        "url": "https://api.github.com/repos/dnikolayev/hash/actions/jobs/103480736033/logs"
+      },
+      "raw_receipt": {
+        "original_sha256": "61e4b2e6d7679f4a303ebeb768a8fb9b170f03f48660a04150005da35e9ff528",
+        "path": "runs/34666896025-1/jobs/103480736033/raw-cache.json",
+        "sha256": "61e4b2e6d7679f4a303ebeb768a8fb9b170f03f48660a04150005da35e9ff528"
+      },
+      "task_timings": {
+        "original_sha256": "1be507c710890ffb0360d9b5dbd29f79b2327159d338dd0e49e9f4aeb9d9f8ec",
+        "path": "runs/34666896025-1/jobs/103480736033/task-timings.json",
+        "sha256": "9156325e1e4e063fbc22feaeea0814a2ee837a3db3a6850362d7c6a243e9d4c6"
+      }
+    },
+    "job_id": 103480736033,
+    "job_name": "Integration (@tests/hash-playwright)",
+    "run_id": 34666896025,
+    "source_sha": "5e087b2ad15d8fe887699f5e2540220e0279d341",
+    "workflow_sha": "5a5adc8597c4c342aefab4f680f9e424edf8bac1"
+  },
+  "timing_notes": [
+    "Monotonic helper durations are retained; buffered display timestamps are not durations.",
+    "Initial compile prepare measures fingerprint work. Workflow prepare additionally includes lock/patch/write work.",
+    "Store includes another fingerprint and payload copy/link. CPU probe counts cover only the named verified contexts; absent phase events are unavailable, not zero."
+  ],
+  "verified_context_cpu_probe_count": 3,
+  "verified_context_cpu_probe_seconds": 0.425,
+  "workflow_prepare_cpu_probes": {
+    "count": 1,
+    "events": [
+      {
+        "key": "",
+        "line": 2318,
+        "phase": "cpu-probe",
+        "seconds": 0.085,
+        "status": "ready"
+      }
+    ],
+    "seconds": 0.085
+  },
+  "workflow_prepare_event": {
+    "key": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+    "line": 2319,
+    "phase": "prepare",
+    "seconds": 49.629,
+    "status": "ready"
+  }
+}

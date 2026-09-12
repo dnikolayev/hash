@@ -1,0 +1,58 @@
+{
+  "after": {
+    "compressed_total_bytes": 974778783,
+    "entry_count": 3
+  },
+  "before": {
+    "compressed_total_bytes": 0,
+    "entry_count": 0
+  },
+  "cache_condition": "cold",
+  "compressed_storage_delta_bytes": 974778783,
+  "namespace": "graph-build-benchmark-20260912-v7-3-",
+  "projection": "Raw cache IDs, refs, versions, timestamps, query fields, URLs and private acquisition paths are omitted.",
+  "schema": 1,
+  "shared_helper_groups": [
+    {
+      "compressed_size_bytes": 324938977,
+      "helper_key": "graph-build-v1-463231913c6bf8b19cd86c1a65bc2788baa16beb2089bdad47d83621f9b4da95",
+      "job_count": 1,
+      "jobs": [
+        "Integration (@rust/hash-graph-benches)"
+      ],
+      "save_outcomes": {
+        "saved": 1
+      }
+    },
+    {
+      "compressed_size_bytes": 324912222,
+      "helper_key": "graph-build-v1-88d190c5e2eea43d5baf9d206c80ae0bda75e76c1a925f0cb326197af1efeca1",
+      "job_count": 1,
+      "jobs": [
+        "Integration (@rust/hash-graph-integration)"
+      ],
+      "save_outcomes": {
+        "saved": 1
+      }
+    },
+    {
+      "compressed_size_bytes": 324927584,
+      "helper_key": "graph-build-v1-ace6664ab5b087c521818e9d6e43e9ac9d7bd1fb9fc253186d81d55f3be19410",
+      "job_count": 3,
+      "jobs": [
+        "Integration (@rust/hash-graph-http-tests)",
+        "Integration (@tests/hash-backend-integration)",
+        "Integration (@tests/hash-playwright)"
+      ],
+      "save_outcomes": {
+        "already-present": 2,
+        "saved": 1
+      }
+    }
+  ],
+  "source_sha256": {
+    "after_inventory": "0cddd3fdb8fd20ccbb72bf3167e668aea730d149b02403a3d35ba74f26763e53",
+    "before_inventory": "077f038e82a1158a257afe5ff3eeb5d01ccee809555a068e3caf565ba2ed01a7",
+    "pre_run_receipt": "98dfa81d656605bc66d71b9fbb7b31dce0600e2f5984624bbe1403c8878f4c5b"
+  }
+}

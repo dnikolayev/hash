@@ -1,0 +1,219 @@
+{
+  "actual_cache_state": "not-applicable",
+  "binary_sha256": null,
+  "binary_size_bytes": 2726583936,
+  "cache_evidence_issues": [],
+  "cache_modes": [
+    "0"
+  ],
+  "cache_saved": false,
+  "conclusion": "success",
+  "cpu_cache_line_bytes": null,
+  "evidence_issues": [],
+  "graph_cargo_invocations": [
+    {
+      "cache_log_status": "bypass; current execution",
+      "compiling_lines": 778,
+      "delivery": "current step output",
+      "finished_line": 6285,
+      "group_line": 4352,
+      "lock_notice_lines": [],
+      "lock_wait_seconds": null,
+      "profile": "dev",
+      "reported_duration": "8m 16s",
+      "reported_seconds": 496.0
+    },
+    {
+      "cache_log_status": "bypass; current execution",
+      "compiling_lines": 0,
+      "delivery": "current step output",
+      "finished_line": 6441,
+      "group_line": 6301,
+      "lock_notice_lines": [
+        {
+          "line": 6436,
+          "text": "Blocking waiting for file lock on package cache"
+        },
+        {
+          "line": 6437,
+          "text": "Blocking waiting for file lock on package cache"
+        },
+        {
+          "line": 6438,
+          "text": "Blocking waiting for file lock on package cache"
+        },
+        {
+          "line": 6439,
+          "text": "Blocking waiting for file lock on package cache"
+        },
+        {
+          "line": 6440,
+          "text": "Blocking waiting for file lock on build directory"
+        },
+        {
+          "line": 6442,
+          "text": "Blocking waiting for file lock on package cache"
+        }
+      ],
+      "lock_wait_seconds": null,
+      "profile": "dev",
+      "reported_duration": "22.35s",
+      "reported_seconds": 22.35
+    },
+    {
+      "cache_log_status": "bypass; current execution",
+      "compiling_lines": 0,
+      "delivery": "current step output",
+      "finished_line": 8153,
+      "group_line": 8018,
+      "lock_notice_lines": [],
+      "lock_wait_seconds": null,
+      "profile": "dev",
+      "reported_duration": "4.05s",
+      "reported_seconds": 4.05
+    },
+    {
+      "cache_log_status": "bypass; current execution",
+      "compiling_lines": 0,
+      "delivery": "buffered background task output",
+      "finished_line": 22073,
+      "group_line": 21668,
+      "lock_notice_lines": [
+        {
+          "line": 21817,
+          "text": "Blocking waiting for file lock on package cache"
+        },
+        {
+          "line": 21841,
+          "text": "Blocking waiting for file lock on package cache"
+        },
+        {
+          "line": 21844,
+          "text": "Blocking waiting for file lock on package cache"
+        }
+      ],
+      "lock_wait_seconds": null,
+      "profile": "dev",
+      "reported_duration": "21.46s",
+      "reported_seconds": 21.46
+    }
+  ],
+  "graph_compile_commands": [
+    "cargo build --bin hash-graph --all-features",
+    "cargo build --bin hash-graph --all-features"
+  ],
+  "helper_lock_phase_seconds": [],
+  "helper_phases": [],
+  "html_url": "https://github.com/dnikolayev/hash/actions/runs/34641904793/job/103403955622",
+  "id": 103403955622,
+  "initial_compile_log_group_lines": [
+    4352,
+    6288
+  ],
+  "initial_compile_summary_id": "3JCGZ8tr1wcc9yu30LF5XWhNjxI",
+  "initial_graph_cargo_invocations": [
+    {
+      "cache_log_status": "bypass; current execution",
+      "compiling_lines": 778,
+      "delivery": "current step output",
+      "finished_line": 6285,
+      "group_line": 4352,
+      "lock_notice_lines": [],
+      "lock_wait_seconds": null,
+      "profile": "dev",
+      "reported_duration": "8m 16s",
+      "reported_seconds": 496.0
+    }
+  ],
+  "name": "Integration (@tests/hash-backend-integration)",
+  "notes": [
+    "Cargo durations are reported by Cargo and may include lock waits; lock-only durations are unavailable.",
+    "Buffered graph output uses Cargo durations, never display-timestamp subtraction.",
+    "Test output is restricted to the selected Turbo task; replayed prerequisite output is excluded."
+  ],
+  "orchestration_scheduling": {
+    "delay_seconds": 2.0,
+    "dependency_jobs": [
+      "setup",
+      "sccache-credentials"
+    ],
+    "note": "Readiness to job start includes orchestration and scheduling; it is not pure runner hardware queue time.",
+    "ready_at": "2026-09-11T20:02:30Z",
+    "started_at": "2026-09-11T20:02:32Z"
+  },
+  "provenance": {
+    "attempt": 1,
+    "job_id": 103403955622,
+    "job_log_sha256": "ee76d0f228f508173f0240e74ab6e76ec158d96fdbae40b74680e3f20f163a50",
+    "job_log_url": "https://api.github.com/repos/dnikolayev/hash/actions/jobs/103403955622/logs",
+    "run_id": 34641904793,
+    "source_receipt_sha256": "ce30c7e985374dec8192f77bb0de1c1dec03305209bd981f8bc9e60bb48abff7"
+  },
+  "selected_test_count_issues": [],
+  "selected_test_counts": {
+    "vitest_suites": [
+      {
+        "test_files": {
+          "passed": 19,
+          "total": 19
+        },
+        "tests": {
+          "passed": 110,
+          "skipped": 9,
+          "total": 119
+        }
+      },
+      {
+        "test_files": {
+          "passed": 3,
+          "total": 3
+        },
+        "tests": {
+          "passed": 48,
+          "total": 48
+        }
+      }
+    ]
+  },
+  "service_and_test_steps": [
+    {
+      "completed_at": "2026-09-11T20:06:22Z",
+      "conclusion": "success",
+      "name": "Launch external services",
+      "number": 17,
+      "started_at": "2026-09-11T20:05:23Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-09-11T20:22:27Z",
+      "conclusion": "success",
+      "name": "Start background tasks",
+      "number": 18,
+      "started_at": "2026-09-11T20:06:22Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-09-11T20:24:29Z",
+      "conclusion": "success",
+      "name": "Run tests",
+      "number": 22,
+      "started_at": "2026-09-11T20:22:27Z",
+      "status": "completed"
+    },
+    {
+      "completed_at": "2026-09-11T20:24:39Z",
+      "conclusion": "success",
+      "name": "Show background tasks logs",
+      "number": 26,
+      "started_at": "2026-09-11T20:24:36Z",
+      "status": "completed"
+    }
+  ],
+  "status": "completed",
+  "task_metrics_seconds": {
+    "initial graph compile task": 506.762,
+    "selected integration test task": 112.055
+  },
+  "task_timing_issues": [],
+  "wall_seconds": 1339.0
+}
