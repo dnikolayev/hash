@@ -1,61 +1,357 @@
-# Fork-only ELF inspection, excluded from performance samples.
-# Replaces the full workflow on this cache's owning branch.
-name: Graph ELF inspection (v9 sample 1)
+# Fork-only graph source-change validation, excluded from performance samples.
+# This workflow replaces the full benchmark workflow on the already-warm branch.
+name: Backend graph source validation (v9)
 run-name: ${{ github.ref_name }} / attempt ${{ github.run_attempt }}
 
 on:
   push:
     branches:
-      - speedup/integration-build-benchmark-v9-final-candidate-1
+      - "speedup/integration-build-benchmark-v9-final-candidate-1"
 
 permissions:
   contents: read
 
+env:
+  TURBO_CACHE: "local:rw"
+  TURBO_TOKEN: ""
+  CARGO_INCREMENTAL: "0"
+  NEXTEST_PROFILE: ci
+  BENCHMARK_BASELINE_SHA: "8aedda02ba9162e77735234168281151d2d2584d"
+  BENCHMARK_SOURCE_SHA: "2d8904b0bdfe7e65578294b921e0b6ef1bf2aaae"
+  BENCHMARK_VARIANT: "candidate"
+  BENCHMARK_SAMPLE: "1"
+  BENCHMARK_SCOPE: "source-invalidation-correctness"
+  BENCHMARK_MINIO_CLIENT_IMAGE: "quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727"
+  GRAPH_SOURCE_PROOF_SCRIPT_SHA256: "ca3f95b1a94349e33d4075e64e29e92a808defe4b2468c10c4a1612b18322c6d"
+  BENCHMARK_WORKFLOW_SHA: ${{ github.workflow_sha }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  inspect:
-    name: Inspect cached graph ELF
+  backend-source-validation:
+    name: Backend graph source validation
     if: github.repository == 'dnikolayev/hash'
+    env:
+      HASH_GRAPH_BUILD_CACHE: "1"
+    strategy:
+      matrix:
+        include:
+          - name: "@tests/hash-backend-integration"
+            path: tests/hash-backend-integration
+            graph_build_cache: true
+            graph_build_cache_producer: false
+      fail-fast: false
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
-      - name: Checkout producer source
+      - name: Show selection reason
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX"
+
+      - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: 2d8904b0bdfe7e65578294b921e0b6ef1bf2aaae
-          persist-credentials: false
 
-      - name: Checkout inspector
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Clean up disk
+        uses: $/.github/actions/clean-up-disk
+
+      - name: Install tools
+        uses: $/.github/actions/install-tools
         with:
-          ref: ${{ github.workflow_sha }}
-          path: .elf-diagnostic-source
-          persist-credentials: false
-          sparse-checkout: .github/benchmarks/graph-build-reuse/inspect_graph_elf.py
-          sparse-checkout-cone-mode: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          encrypted_sccache_credentials: ""
+          sccache_encryption_key: ""
 
-      - name: Restore producer payload
+      - name: Prune repository
+        uses: $/.github/actions/prune-repository
+        with:
+          scope: |
+            ${{ matrix.name }}
+
+      - name: Warm up repository
+        uses: $/.github/actions/warm-up-repo
+
+      - name: Use available MinIO client registry
+        run: |
+          python3 - <<'PYTHON'
+          import os, pathlib
+          path = pathlib.Path('infra/compose/compose.yml')
+          old = b'    image: minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727\n'
+          new = ('    image: ' + os.environ['BENCHMARK_MINIO_CLIENT_IMAGE'] + '\n').encode()
+          data = path.read_bytes()
+          if data.count(old) != 1:
+              raise SystemExit('expected exactly one pinned MinIO client image')
+          path.write_bytes(data.replace(old, new))
+          print(os.environ['BENCHMARK_MINIO_CLIENT_IMAGE'])
+          PYTHON
+
+      - name: Record benchmark environment
+        run: |
+          mkdir -p var/logs
+          python3 - <<'PYTHON'
+          import json, os, pathlib, platform, subprocess
+          def output(command):
+              return subprocess.check_output(command, text=True).strip()
+          record = {
+              'baseline_sha': os.environ['BENCHMARK_BASELINE_SHA'],
+              'candidate_sha': os.environ['BENCHMARK_SOURCE_SHA'],
+              'checkout_sha': output(['git', 'rev-parse', 'HEAD']),
+              'variant': os.environ['BENCHMARK_VARIANT'],
+              'sample': os.environ['BENCHMARK_SAMPLE'],
+              'scope': os.environ['BENCHMARK_SCOPE'],
+              'workflow_sha': os.environ['BENCHMARK_WORKFLOW_SHA'],
+              'run_id': os.environ['GITHUB_RUN_ID'],
+              'run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'runner_arch': os.environ['RUNNER_ARCH'],
+              'runner_os': os.environ['RUNNER_OS'],
+              'runner_name': os.environ['RUNNER_NAME'],
+              'image_version': os.environ.get('ImageVersion'),
+              'platform': platform.platform(),
+              'cpu_count': os.cpu_count(),
+              'cpu_lines': sorted({line for line in pathlib.Path('/proc/cpuinfo').read_text().splitlines()
+                                   if line.split(':', 1)[0].strip() in
+                                   {'model name', 'flags', 'Features', 'CPU implementer', 'CPU part'}}),
+              'rustc': output(['rustc', '-vV']),
+              'cargo': output(['cargo', '--version']),
+              'node': output(['node', '--version']),
+              'turbo': output(['turbo', '--version']),
+              'turbo_cache': os.environ['TURBO_CACHE'],
+              'cargo_incremental': os.environ['CARGO_INCREMENTAL'],
+              'sccache': 'disabled',
+              'minio_client_image': os.environ['BENCHMARK_MINIO_CLIENT_IMAGE'],
+          }
+          text = json.dumps(record, indent=2)
+          pathlib.Path('var/logs/benchmark-environment.json').write_text(text + '\n')
+          print(text)
+          PYTHON
+
+      - name: Prepare graph build
+        id: graph-build
+        if: env.HASH_GRAPH_BUILD_CACHE == '1' && hashFiles('apps/hash-graph/package.json') != ''
+        run: python3 .github/actions/graph-build-cache/graph_build_cache.py prepare
+
+      - name: Require graph build preparation
+        if: env.HASH_GRAPH_BUILD_CACHE == '1' && hashFiles('apps/hash-graph/package.json') != ''
+        env:
+          PREPARED_KEY: ${{ steps.graph-build.outputs.key }}
+        run: test -n "$PREPARED_KEY"
+
+      - name: Restore graph build
         id: graph-cache
+        if: env.HASH_GRAPH_BUILD_CACHE == '1' && steps.graph-build.outputs.key != ''
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: target/graph-build-cache
-          key: graph-build-benchmark-v9final-1-graph-build-v1-8c1978d9ce5b6e302db690fa67209bd6b4f695433a56970929112069f021334b
-          fail-on-cache-miss: true
+          key: graph-build-benchmark-v9final-1-${{ steps.graph-build.outputs.key }}
 
-      - name: Inspect verified ELF
+      - name: Require exact restored graph output
         env:
-          GRAPH_ELF_SAMPLE: "1"
-          DIAGNOSTIC_WORKFLOW_SHA: ${{ github.workflow_sha }}
           GRAPH_CACHE_HIT: ${{ steps.graph-cache.outputs.cache-hit }}
-          GRAPH_CACHE_PRIMARY_KEY: ${{ steps.graph-cache.outputs.cache-primary-key }}
-          GRAPH_CACHE_MATCHED_KEY: ${{ steps.graph-cache.outputs.cache-matched-key }}
-        run: |
-          echo 'a23e2f1dee33431f23d6ae3337afe309c3a703feec9d19833012ddb8756bf12e  .elf-diagnostic-source/.github/benchmarks/graph-build-reuse/inspect_graph_elf.py' | sha256sum --check --strict
-          python3 .elf-diagnostic-source/.github/benchmarks/graph-build-reuse/inspect_graph_elf.py
+        run: test "$GRAPH_CACHE_HIT" = true
 
-      - name: Upload ELF description
+      - name: Load source validation script
+        id: graph-proof-script
+        run: |
+          curl --fail --silent --show-error --location \
+            "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_WORKFLOW_SHA}/.github/benchmarks/graph-build-reuse/graph_source_invalidation.py" \
+            --output "$RUNNER_TEMP/graph_source_invalidation.py"
+          python3 - <<'PYTHON'
+          import hashlib, os, pathlib
+          script = pathlib.Path(os.environ['RUNNER_TEMP']) / 'graph_source_invalidation.py'
+          if hashlib.sha256(script.read_bytes()).hexdigest() != os.environ['GRAPH_SOURCE_PROOF_SCRIPT_SHA256']:
+              raise SystemExit('source-proof-script-checksum-mismatch')
+          PYTHON
+
+      - name: Prove graph source invalidation and rebuilding
+        id: graph-source-proof
+        env:
+          PROOF_PREPARED_KEY: ${{ steps.graph-build.outputs.key }}
+          PROOF_ACTIONS_KEY: graph-build-benchmark-v9final-1-${{ steps.graph-build.outputs.key }}
+          PROOF_ACTIONS_CACHE_HIT: ${{ steps.graph-cache.outputs.cache-hit }}
+        run: python3 "$RUNNER_TEMP/graph_source_invalidation.py" prepare
+
+      - name: Find test steps to run
+        id: tests
+        run: |
+          HAS_BACKGROUND_TASKS=$(turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .name] != []' || echo 'false')
+          echo "has-background-tasks=$HAS_BACKGROUND_TASKS" | tee -a "$GITHUB_OUTPUT"
+
+          HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
+          echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Create temp files and folders
+        run: mkdir -p var/logs
+
+      - name: Install playwright
+        if: matrix.name == '@tests/hash-playwright'
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          max_attempts: 3
+          timeout_minutes: 2
+          shell: bash
+          command: npx playwright install chromium
+
+      - name: Show disk usage
+        run: df -h
+
+      - name: Launch external services
+        # Retried because BuildKit occasionally fails with transient rpc errors on
+        # individual runners (e.g. "failed to receive status: rpc error: code =
+        # Unavailable desc = error reading from server: EOF"), failing the job
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          max_attempts: 3
+          timeout_minutes: 15
+          retry_wait_seconds: 15
+          shell: bash
+          command: cd infra/compose && docker compose --profile dev up -d
+
+      - name: Start background tasks
+        id: background-tasks
+        if: steps.tests.outputs.has-background-tasks == 'true'
+        env:
+          # Set terminal logging to WARN level and enable verbose file logging for CI
+          HASH_GRAPH_LOG_CONSOLE_LEVEL: warn
+          HASH_GRAPH_LOG_FILE_ENABLED: true
+          HASH_GRAPH_LOG_FILE_LEVEL: info
+          HASH_GRAPH_LOG_FOLDER: ${{ github.workspace }}/var/logs
+        run: |
+          # Optimistically compile background tasks. Ideally, we also `build` them but this includes
+          # `@apps/plugin-browser` which needs `build:test` instead. We cannot filter it out because
+          # except when running PlayWright tests, the plugin-browser is already pruned out so the
+          # command would fail.
+          turbo run compile --env-mode=loose --summarize
+          mkdir -p logs
+          turbo run start:test --env-mode=loose --log-order stream >var/logs/background-task.log 2>&1 &
+          PID=$!
+          echo "pid=$PID" | tee -a "$GITHUB_OUTPUT"
+
+          # Not strictly needed to run the healthchecks here as they are also run in the integration
+          # tests but it this way we can fail the job early if the background tasks are not healthy.
+          # Also, the recorded time for the different steps is more accurate.
+          turbo run start:test:healthcheck --env-mode=loose
+
+      - name: Show disk usage
+        run: df -h
+
+      - name: Run tests
+        id: graph-proof-tests
+        continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
+        run: |
+          turbo run test:integration --env-mode=loose --filter "${{ matrix.name }}" --summarize
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')" >> "$GITHUB_ENV"
+
+      - name: Show disk usage
+        run: df -h
+
+      - name: Recover original graph source and executable
+        if: always() && steps.graph-proof-script.outcome == 'success'
+        env:
+          PROOF_STARTUP_OUTCOME: ${{ steps.background-tasks.outcome }}
+          PROOF_TEST_OUTCOME: ${{ steps.graph-proof-tests.outcome }}
+        run: python3 "$RUNNER_TEMP/graph_source_invalidation.py" recover
+
+      - name: Remove source validation script
+        if: always()
+        run: |
+          python3 - <<'PYTHON'
+          import os, pathlib
+          (pathlib.Path(os.environ['RUNNER_TEMP']) / 'graph_source_invalidation.py').unlink(missing_ok=True)
+          PYTHON
+
+      - uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
+        with:
+          flags: ${{ env.TRIMMED_PACKAGE_NAME }}
+          token: "" ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
+
+      - name: Show container logs
+        if: ${{ success() || failure() }}
+        working-directory: infra/compose
+        run: docker compose --profile dev logs --timestamps
+
+      - name: Show background tasks logs
+        if: always() && steps.tests.outputs.has-background-tasks == 'true'
+        run: |
+          kill -15 ${{ steps.background-tasks.outputs.pid }} || true
+          cat var/logs/background-task.log
+
+      - name: Upload artifact playwright-report
+        if: matrix.name == '@tests/hash-playwright' && (success() || failure())
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: graph-elf-v9-1-${{ github.run_id }}-${{ github.run_attempt }}
-          path: elf-report/elf.json
-          if-no-files-found: error
-          retention-days: 7
+          name: ${{ env.TRIMMED_PACKAGE_NAME }}_report
+          path: tests/hash-playwright/playwright-report
+
+      - name: Record current task timings
+        if: always()
+        run: |
+          python3 - <<'PYTHON'
+          import json, pathlib
+          records = []
+          fields = ['startTime', 'endTime', 'exitCode']
+          for path in sorted(pathlib.Path('.turbo/runs').glob('*.json')):
+              summary = json.loads(path.read_text())
+              assert summary['version'] == '1' and summary['turboVersion'] == '2.10.12'
+              execution = summary.get('execution') or {}
+              record = {key: summary[key] for key in ['id', 'version', 'turboVersion']}
+              record['execution'] = {key: execution.get(key) for key in ['command', *fields]}
+              record['tasks'] = []
+              for task in summary['tasks']:
+                  timing = task.get('execution') or {}
+                  record['tasks'].append({
+                      'taskId': task['taskId'], 'command': task['command'],
+                      'execution': {key: timing.get(key) for key in fields},
+                      'turbo_cache_status': task['cache']['status'],
+                      'task_cache_enabled': task['resolvedTaskDefinition']['cache'],
+                  })
+              records.append(record)
+          logs = pathlib.Path('var/logs')
+          logs.mkdir(parents=True, exist_ok=True)
+          (logs / 'turbo-task-timings.json').write_text(json.dumps(records, indent=2) + '\n')
+          print(f'Recorded {len(records)} current Turbo summaries')
+          PYTHON
+
+      - name: Record graph cache evidence
+        if: always()
+        env:
+          GRAPH_PREPARED_KEY: ${{ steps.graph-build.outputs.key }}
+          GRAPH_CACHE_HIT: ${{ steps.graph-cache.outputs.cache-hit }}
+          GRAPH_CACHE_ENABLED: ${{ matrix.graph_build_cache }}
+          GRAPH_CACHE_PRODUCER: ${{ matrix.graph_build_cache_producer }}
+          GRAPH_MATRIX_NAME: ${{ matrix.name }}
+          GRAPH_ACTIONS_KEY: "graph-build-benchmark-v9final-1-${{ steps.graph-build.outputs.key }}"
+          GRAPH_UPLOAD_VALID: ""
+          GRAPH_SAVE_OUTCOME: "not-attempted"
+        run: |
+          python3 - <<'PYTHON'
+          import json, os, pathlib, shutil
+          logs = pathlib.Path('var/logs')
+          logs.mkdir(parents=True, exist_ok=True)
+          for source in ['target/graph-build-inputs.json', 'target/graph-build-cache/manifest.json']:
+              path = pathlib.Path(source)
+              if path.is_file() and not path.is_symlink():
+                  shutil.copyfile(path, logs / ('graph-' + path.name))
+          receipt = {key: os.environ.get(key, '') for key in [
+              'GRAPH_MATRIX_NAME', 'GRAPH_CACHE_ENABLED', 'GRAPH_CACHE_PRODUCER',
+              'GRAPH_PREPARED_KEY', 'GRAPH_ACTIONS_KEY', 'GRAPH_CACHE_HIT',
+              'GRAPH_UPLOAD_VALID', 'GRAPH_SAVE_OUTCOME']}
+          binary = pathlib.Path('target/debug/hash-graph')
+          receipt['graph_binary_size_bytes'] = binary.stat().st_size if binary.is_file() and not binary.is_symlink() else None
+          (logs / 'graph-cache-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(json.dumps(receipt))
+          PYTHON
+
+      - name: Upload logs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: success() || failure()
+        with:
+          name: ${{ env.TRIMMED_PACKAGE_NAME }}_logs
+          path: |
+            var/api
+            var/logs
