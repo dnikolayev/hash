@@ -1,0 +1,571 @@
+# Fork-only harness derived from .github/workflows/test.yml.
+# Full scope reproduces the complete Test matrix; smoke scope runs two integrations.
+# All samples disable remote Turbo and sccache.
+# The source's MinIO client digest is pulled from its available official registry.
+# Compare identical application inputs; disclose optimization-only source differences.
+name: Integration build benchmark (baseline 3, full)
+run-name: ${{ github.ref_name }} / attempt ${{ github.run_attempt }}
+
+on:
+  push:
+    branches:
+      - "speedup/integration-build-benchmark-*"
+
+permissions:
+  contents: read
+
+env:
+  TURBO_CACHE: "local:rw"
+  TURBO_TOKEN: ""
+  CARGO_INCREMENTAL: "0"
+  NEXTEST_PROFILE: ci
+  BENCHMARK_BASELINE_SHA: "8aedda02ba9162e77735234168281151d2d2584d"
+  BENCHMARK_SOURCE_SHA: "2d8904b0bdfe7e65578294b921e0b6ef1bf2aaae"
+  BENCHMARK_VARIANT: "baseline"
+  BENCHMARK_SAMPLE: "3"
+  BENCHMARK_SCOPE: "complete-test"
+  BENCHMARK_FORCE_GRAPH_CACHE_PUBLISH: "0"
+  BENCHMARK_MINIO_CLIENT_IMAGE: "quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727"
+  BENCHMARK_WORKFLOW_SHA: ${{ github.workflow_sha }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      unit-tests: ${{ steps.packages.outputs.unit-tests }}
+      integration-tests: ${{ steps.packages.outputs.integration-tests }}
+      system-tests: ${{ steps.packages.outputs.system-tests }}
+      publish-rust: ${{ steps.packages.outputs.publish-rust }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: 2d8904b0bdfe7e65578294b921e0b6ef1bf2aaae
+          fetch-depth: 2
+
+      - name: Install tools
+        uses: $/.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          rust: false
+
+      - name: Determine changed packages
+        id: packages
+        run: |
+          UNIT_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:unit)
+          INTEGRATION_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:integration)
+
+          PUBLISH_PACKAGES=[]
+          while IFS= read -r file; do
+            if [[ -n "$file" ]]; then
+              PACKAGE_NAME=$(yq '.package.name' -p toml -oy "$file")
+              if [[ "$PACKAGE_NAME" == "null" ]]; then
+                continue
+              fi
+
+              if [[ "$(yq '.package.publish' -p toml -oy "$file")" == "false" ]]; then
+                continue
+              fi
+
+              if [[ "$(yq '.package.publish.workspace' -p toml -oy "$file")" == "true" ]]; then
+                if [[ "$(yq '.workspace.package.publish' -p toml -oy "Cargo.toml")" == "false" ]]; then
+                  continue
+                fi
+              fi
+
+              OLD_VERSION=$(git show HEAD^:"$file" | yq '.package.version' -p toml)
+              if [[ "$OLD_VERSION" == "null" ]]; then
+                continue
+              fi
+              NEW_VERSION=$(yq '.package.version' -p toml -oy "$file")
+              if [[ "$OLD_VERSION" == "$NEW_VERSION" ]]; then
+                continue
+              fi
+
+              PUBLISH_PACKAGES=$(echo "$PUBLISH_PACKAGES" | jq -c --arg package "$PACKAGE_NAME" '. += [$package]')
+            fi
+          done <<< "$(find . -name 'Cargo.toml' -type f | sed 's|\./||')"
+
+          echo "unit-tests=$UNIT_TEST_PACKAGES" | tee -a "$GITHUB_OUTPUT"
+          echo "integration-tests=$INTEGRATION_TEST_PACKAGES" | tee -a "$GITHUB_OUTPUT"
+          echo "publish-rust=$PUBLISH_PACKAGES" | tee -a "$GITHUB_OUTPUT"
+
+  sccache-credentials:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: 2d8904b0bdfe7e65578294b921e0b6ef1bf2aaae
+
+      - name: Mint sccache credentials
+        id: mint
+        uses: $/.github/actions/mint-sccache-credentials
+        with:
+          vault_address: ""
+          cf_access_client_id: ""
+          cf_access_client_secret: ""
+          encryption_key: ""
+
+  unit-tests:
+    name: Unit
+    needs: [setup, sccache-credentials]
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.unit-tests) }}
+      fail-fast: false
+    if: needs.setup.outputs.unit-tests != '{"name":[],"include":[]}'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Show selection reason
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX"
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: 2d8904b0bdfe7e65578294b921e0b6ef1bf2aaae
+
+      - name: Clean up disk
+        uses: $/.github/actions/clean-up-disk
+
+      - name: Install tools
+        uses: $/.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          encrypted_sccache_credentials: ""
+          sccache_encryption_key: ""
+
+      - name: Prune repository
+        uses: $/.github/actions/prune-repository
+        with:
+          scope: |
+            ${{ matrix.name }}
+            @rust/hash-repo-chores
+
+      - name: Warm up repository
+        uses: $/.github/actions/warm-up-repo
+
+      - name: Find test steps to run
+        id: tests
+        run: |
+          HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
+          echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
+
+          if [[ "$HAS_RUST" == "true" ]]; then
+            echo "COVERAGE_KEY=rust" >> "$GITHUB_ENV"
+          else
+            echo "COVERAGE_KEY=javascript" >> "$GITHUB_ENV"
+          fi
+
+      - name: Show disk usage
+        run: df -h
+
+      - name: Run tests
+        continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
+        env:
+          TEST_COVERAGE: ${{ github.event_name != 'merge_group' }}
+        run: |
+          turbo run test:unit --env-mode=loose --filter "${{ matrix.name }}"
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')" >> "$GITHUB_ENV"
+
+      - name: Show disk usage
+        run: df -h
+
+      - uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
+        with:
+          flags: ${{ env.TRIMMED_PACKAGE_NAME }}
+          token: "" ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
+
+      - name: Run miri
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        run: |
+          turbo run test:miri --filter "${{ matrix.name }}"
+
+      - name: Show sccache logs
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        run: |
+          grep "CannotCache" /tmp/sccache.log | while IFS= read -r line; do
+            # Extract reason - format as "reason1 (reason2)" if comma-separated, otherwise just "reason"
+            if echo "$line" | grep -qE 'CannotCache\([^,]+, [^)]+\):'; then
+              reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^,]+), ([^)]+)\):.*/\1 (\2)/')
+            else
+              reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^)]+)\):.*/\1/')
+            fi
+
+            # Extract crate name if present
+            if echo "$line" | grep -q '"--crate-name"'; then
+              crate=$(echo "$line" | sed -E 's/.*"--crate-name", "([^"]+)".*/\1/')
+            else
+              crate="<no crate name>"
+            fi
+
+            # Extract args
+            args=$(echo "$line" | sed -E 's/.*CannotCache\([^)]+\): (\[.+\])$/\1/')
+
+            echo ""
+            echo "reason: $reason"
+            echo "crate:  $crate"
+            echo "args:   $args"
+          done
+
+  integration-tests:
+    name: Integration
+    env:
+      HASH_GRAPH_BUILD_CACHE: "0"
+    needs: [setup, sccache-credentials]
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
+      fail-fast: false
+    # Only the top of a stack runs integration tests: it contains every layer below it.
+    if: >-
+      needs.setup.outputs.integration-tests != '{"name":[],"include":[]}'
+      && (github.event.pull_request.stack == null
+      || github.event.pull_request.stack.position == github.event.pull_request.stack.size)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Show selection reason
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX"
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: 2d8904b0bdfe7e65578294b921e0b6ef1bf2aaae
+
+      - name: Clean up disk
+        uses: $/.github/actions/clean-up-disk
+
+      - name: Install tools
+        uses: $/.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          encrypted_sccache_credentials: ""
+          sccache_encryption_key: ""
+
+      - name: Prune repository
+        uses: $/.github/actions/prune-repository
+        with:
+          scope: |
+            ${{ matrix.name }}
+
+      - name: Warm up repository
+        uses: $/.github/actions/warm-up-repo
+
+      - name: Use available MinIO client registry
+        run: |
+          python3 - <<'PYTHON'
+          import os, pathlib
+          path = pathlib.Path('infra/compose/compose.yml')
+          old = b'    image: minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727\n'
+          new = ('    image: ' + os.environ['BENCHMARK_MINIO_CLIENT_IMAGE'] + '\n').encode()
+          data = path.read_bytes()
+          if data.count(old) != 1:
+              raise SystemExit('expected exactly one pinned MinIO client image')
+          path.write_bytes(data.replace(old, new))
+          print(os.environ['BENCHMARK_MINIO_CLIENT_IMAGE'])
+          PYTHON
+
+      - name: Record benchmark environment
+        run: |
+          mkdir -p var/logs
+          python3 - <<'PYTHON'
+          import json, os, pathlib, platform, subprocess
+          def output(command):
+              return subprocess.check_output(command, text=True).strip()
+          record = {
+              'baseline_sha': os.environ['BENCHMARK_BASELINE_SHA'],
+              'candidate_sha': os.environ['BENCHMARK_SOURCE_SHA'],
+              'checkout_sha': output(['git', 'rev-parse', 'HEAD']),
+              'variant': os.environ['BENCHMARK_VARIANT'],
+              'sample': os.environ['BENCHMARK_SAMPLE'],
+              'scope': os.environ['BENCHMARK_SCOPE'],
+              'workflow_sha': os.environ['BENCHMARK_WORKFLOW_SHA'],
+              'run_id': os.environ['GITHUB_RUN_ID'],
+              'run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'runner_arch': os.environ['RUNNER_ARCH'],
+              'runner_os': os.environ['RUNNER_OS'],
+              'runner_name': os.environ['RUNNER_NAME'],
+              'image_version': os.environ.get('ImageVersion'),
+              'platform': platform.platform(),
+              'cpu_count': os.cpu_count(),
+              'cpu_lines': sorted({line for line in pathlib.Path('/proc/cpuinfo').read_text().splitlines()
+                                   if line.split(':', 1)[0].strip() in
+                                   {'model name', 'flags', 'Features', 'CPU implementer', 'CPU part'}}),
+              'rustc': output(['rustc', '-vV']),
+              'cargo': output(['cargo', '--version']),
+              'node': output(['node', '--version']),
+              'turbo': output(['turbo', '--version']),
+              'turbo_cache': os.environ['TURBO_CACHE'],
+              'cargo_incremental': os.environ['CARGO_INCREMENTAL'],
+              'sccache': 'disabled',
+              'minio_client_image': os.environ['BENCHMARK_MINIO_CLIENT_IMAGE'],
+          }
+          text = json.dumps(record, indent=2)
+          pathlib.Path('var/logs/benchmark-environment.json').write_text(text + '\n')
+          print(text)
+          PYTHON
+
+      - name: Prepare graph build
+        id: graph-build
+        if: env.HASH_GRAPH_BUILD_CACHE == '1' && hashFiles('apps/hash-graph/package.json') != ''
+        run: python3 .github/actions/graph-build-cache/graph_build_cache.py prepare
+
+      - name: Require graph build preparation
+        if: env.HASH_GRAPH_BUILD_CACHE == '1' && hashFiles('apps/hash-graph/package.json') != ''
+        env:
+          PREPARED_KEY: ${{ steps.graph-build.outputs.key }}
+        run: test -n "$PREPARED_KEY"
+
+      - name: Restore graph build
+        id: graph-cache
+        if: env.HASH_GRAPH_BUILD_CACHE == '1' && steps.graph-build.outputs.key != ''
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: target/graph-build-cache
+          key: graph-build-benchmark-v9final-3-${{ steps.graph-build.outputs.key }}
+
+      - name: Find test steps to run
+        id: tests
+        run: |
+          HAS_BACKGROUND_TASKS=$(turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .name] != []' || echo 'false')
+          echo "has-background-tasks=$HAS_BACKGROUND_TASKS" | tee -a "$GITHUB_OUTPUT"
+
+          HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
+          echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Create temp files and folders
+        run: mkdir -p var/logs
+
+      - name: Install playwright
+        if: matrix.name == '@tests/hash-playwright'
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          max_attempts: 3
+          timeout_minutes: 2
+          shell: bash
+          command: npx playwright install chromium
+
+      - name: Show disk usage
+        run: df -h
+
+      - name: Launch external services
+        # Retried because BuildKit occasionally fails with transient rpc errors on
+        # individual runners (e.g. "failed to receive status: rpc error: code =
+        # Unavailable desc = error reading from server: EOF"), failing the job
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          max_attempts: 3
+          timeout_minutes: 15
+          retry_wait_seconds: 15
+          shell: bash
+          command: cd infra/compose && docker compose --profile dev up -d
+
+      - name: Start background tasks
+        id: background-tasks
+        if: steps.tests.outputs.has-background-tasks == 'true'
+        env:
+          # Set terminal logging to WARN level and enable verbose file logging for CI
+          HASH_GRAPH_LOG_CONSOLE_LEVEL: warn
+          HASH_GRAPH_LOG_FILE_ENABLED: true
+          HASH_GRAPH_LOG_FILE_LEVEL: info
+          HASH_GRAPH_LOG_FOLDER: ${{ github.workspace }}/var/logs
+        run: |
+          # Optimistically compile background tasks. Ideally, we also `build` them but this includes
+          # `@apps/plugin-browser` which needs `build:test` instead. We cannot filter it out because
+          # except when running PlayWright tests, the plugin-browser is already pruned out so the
+          # command would fail.
+          turbo run compile --env-mode=loose --summarize
+          mkdir -p logs
+          turbo run start:test --env-mode=loose --log-order stream >var/logs/background-task.log 2>&1 &
+          PID=$!
+          echo "pid=$PID" | tee -a "$GITHUB_OUTPUT"
+
+          # Not strictly needed to run the healthchecks here as they are also run in the integration
+          # tests but it this way we can fail the job early if the background tasks are not healthy.
+          # Also, the recorded time for the different steps is more accurate.
+          turbo run start:test:healthcheck --env-mode=loose
+
+      - name: Show disk usage
+        run: df -h
+
+      - name: Prepare graph build for upload
+        id: graph-build-output
+        if: ${{ false }}
+        env:
+          EXPECTED_GRAPH_BUILD_KEY: ${{ steps.graph-build.outputs.key }}
+        run: python3 .github/actions/graph-build-cache/graph_build_cache.py publish
+
+      - name: Save graph build
+        id: graph-cache-save
+        if: ${{ false }}
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: target/graph-build-cache
+          key: graph-build-benchmark-v9final-3-${{ steps.graph-build.outputs.key }}
+
+      - name: Run tests
+        continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
+        run: |
+          turbo run test:integration --env-mode=loose --filter "${{ matrix.name }}" --summarize
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')" >> "$GITHUB_ENV"
+
+      - name: Show disk usage
+        run: df -h
+
+      - uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        name: Upload coverage to https://app.codecov.io/gh/hashintel/hash
+        with:
+          flags: ${{ env.TRIMMED_PACKAGE_NAME }}
+          token: "" ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
+
+      - name: Show container logs
+        if: ${{ success() || failure() }}
+        working-directory: infra/compose
+        run: docker compose --profile dev logs --timestamps
+
+      - name: Show background tasks logs
+        if: always() && steps.tests.outputs.has-background-tasks == 'true'
+        run: |
+          kill -15 ${{ steps.background-tasks.outputs.pid }} || true
+          cat var/logs/background-task.log
+
+      - name: Upload artifact playwright-report
+        if: matrix.name == '@tests/hash-playwright' && (success() || failure())
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ env.TRIMMED_PACKAGE_NAME }}_report
+          path: tests/hash-playwright/playwright-report
+
+      - name: Record current task timings
+        if: always()
+        run: |
+          python3 - <<'PYTHON'
+          import json, pathlib
+          records = []
+          fields = ['startTime', 'endTime', 'exitCode']
+          for path in sorted(pathlib.Path('.turbo/runs').glob('*.json')):
+              summary = json.loads(path.read_text())
+              assert summary['version'] == '1' and summary['turboVersion'] == '2.10.12'
+              execution = summary.get('execution') or {}
+              record = {key: summary[key] for key in ['id', 'version', 'turboVersion']}
+              record['execution'] = {key: execution.get(key) for key in ['command', *fields]}
+              record['tasks'] = []
+              for task in summary['tasks']:
+                  timing = task.get('execution') or {}
+                  record['tasks'].append({
+                      'taskId': task['taskId'], 'command': task['command'],
+                      'execution': {key: timing.get(key) for key in fields},
+                      'turbo_cache_status': task['cache']['status'],
+                      'task_cache_enabled': task['resolvedTaskDefinition']['cache'],
+                  })
+              records.append(record)
+          logs = pathlib.Path('var/logs')
+          logs.mkdir(parents=True, exist_ok=True)
+          (logs / 'turbo-task-timings.json').write_text(json.dumps(records, indent=2) + '\n')
+          print(f'Recorded {len(records)} current Turbo summaries')
+          PYTHON
+
+      - name: Record graph cache evidence
+        if: always()
+        env:
+          GRAPH_PREPARED_KEY: ${{ steps.graph-build.outputs.key }}
+          GRAPH_CACHE_HIT: ${{ steps.graph-cache.outputs.cache-hit }}
+          GRAPH_CACHE_ENABLED: ${{ matrix.graph_build_cache }}
+          GRAPH_CACHE_PRODUCER: ${{ matrix.graph_build_cache_producer }}
+          GRAPH_MATRIX_NAME: ${{ matrix.name }}
+          GRAPH_ACTIONS_KEY: "graph-build-benchmark-v9final-3-${{ steps.graph-build.outputs.key }}"
+          GRAPH_UPLOAD_VALID: ${{ steps.graph-build-output.outputs.valid }}
+          GRAPH_SAVE_OUTCOME: ${{ steps.graph-cache-save.outcome }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os, pathlib, shutil
+          logs = pathlib.Path('var/logs')
+          logs.mkdir(parents=True, exist_ok=True)
+          for source in ['target/graph-build-inputs.json', 'target/graph-build-cache/manifest.json']:
+              path = pathlib.Path(source)
+              if path.is_file() and not path.is_symlink():
+                  shutil.copyfile(path, logs / ('graph-' + path.name))
+          receipt = {key: os.environ.get(key, '') for key in [
+              'GRAPH_MATRIX_NAME', 'GRAPH_CACHE_ENABLED', 'GRAPH_CACHE_PRODUCER',
+              'GRAPH_PREPARED_KEY', 'GRAPH_ACTIONS_KEY', 'GRAPH_CACHE_HIT',
+              'GRAPH_UPLOAD_VALID', 'GRAPH_SAVE_OUTCOME']}
+          binary = pathlib.Path('target/debug/hash-graph')
+          receipt['graph_binary_size_bytes'] = binary.stat().st_size if binary.is_file() and not binary.is_symlink() else None
+          (logs / 'graph-cache-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(json.dumps(receipt))
+          PYTHON
+
+      - name: Upload logs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: success() || failure()
+        with:
+          name: ${{ env.TRIMMED_PACKAGE_NAME }}_logs
+          path: |
+            var/api
+            var/logs
+
+  publish-rust:
+    name: Publish dry run (Rust)
+    needs: [setup]
+    if: needs.setup.outputs.publish-rust != '[]' && (github.event_name == 'pull_request' || github.event_name == 'merge_group')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: 2d8904b0bdfe7e65578294b921e0b6ef1bf2aaae
+
+      - name: Clean up disk
+        uses: $/.github/actions/clean-up-disk
+
+      - name: Build package flags
+        id: flags
+        env:
+          PUBLISH_PACKAGES: ${{ needs.setup.outputs.publish-rust }}
+        run: |
+          PACKAGES=$(echo "$PUBLISH_PACKAGES" | jq -r '.[]' | while read -r pkg; do echo -n "-p $pkg "; done)
+          echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Publish (dry run)
+        run: cargo publish --all-features --dry-run --no-verify ${{ steps.flags.outputs.packages }}
+
+  passed:
+    name: Tests passed
+    needs:
+      [setup, sccache-credentials, unit-tests, integration-tests, publish-rust]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check setup script
+        run: |
+          [[ ${{ needs.setup.result }} = success ]]
+      - name: Check sccache credentials
+        run: |
+          [[ ${{ needs.sccache-credentials.result }} = success ]]
+      - name: Check unit tests
+        run: |
+          [[ ${{ needs.unit-tests.result }} =~ success|skipped ]]
+      - name: Check integration tests
+        run: |
+          [[ ${{ needs.integration-tests.result }} =~ success|skipped ]]
+      - name: Check publish results
+        run: |
+          [[ ${{ needs.publish-rust.result }} =~ success|skipped ]]
